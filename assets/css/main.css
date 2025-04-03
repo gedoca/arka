@@ -781,6 +781,7 @@ section,
   justify-content: center;
 }
 
+
 .hero:before {
   content: "";
   position: absolute;
@@ -823,6 +824,11 @@ section,
 }
 
 @media (max-width: 640px) {
+
+	.hero {
+  min-height: 61vh;
+}	
+	
   .hero h1 {
     font-size: 30px;
     line-height: 36px;
