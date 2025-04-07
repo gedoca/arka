@@ -661,6 +661,17 @@ h6 {
 }
 
 /*--------------------------------------------------------------
+# Agenda
+--------------------------------------------------------------*/
+
+    .agenda-item.clase { background-color: #8c7697; }
+    .agenda-item.circulo { background-color: #bda4ca; }
+    .agenda-item.presencial { background-color: #d1d88d; }
+    .agenda-item.retiro { background-color: #a4ce97; }
+    .agenda-item { padding: 20px 20px 20px 33px; border-radius: 8px; margin-bottom: 20px;    width: 100%; }
+    .filter-btns button.active { background-color: #0d6efd; color: white; }
+
+/*--------------------------------------------------------------
 # Disable aos animation delay on mobile devices
 --------------------------------------------------------------*/
 @media screen and (max-width: 768px) {
