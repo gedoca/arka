@@ -59,6 +59,16 @@
       text-align: center;
       background-color: #fefdf9;
     }
+	.audiotitulo {
+	margin: 10px;
+    float: left;
+	}	
+	.player {
+	width: 70%;
+    float: left;
+    margin-left: 20px;
+	}
+	
   </style>
 </head>
 
@@ -205,31 +215,44 @@
 
     <!-- Audio 1 -->
     <div class="list-group-item">
-      <strong>Conciencia corporal 01</strong><br>
-      <small>🎧 Voz: María Paulina Rubio</small>
-      <audio controls class="mt-2 w-100">
-        <source src="audios/conciencia-01.mp3" type="audio/mp3" />
-        Tu navegador no soporta audio embebido.
-      </audio>
-    </div>
-<br />
+		<div class="audiotitulo">
+			<strong>Conciencia corporal 01</strong><br>
+			<small>🎧 Voz: María Paulina Rubio</small>
+		</div>
+		<div class="player">
+			<audio controls class="mt-2 w-100">
+			<source src="audios/conciencia-01.mp3" type="audio/mp3" />
+			Tu navegador no soporta audio embebido.
+			</audio>
+		</div>
+	</div>
+	<br />
+    <!-- Audio 2 -->
    <div class="list-group-item">
-      <strong>Atención plena 01</strong><br>
-      <small>🎧 Voz: María Paulina Rubio</small>
-      <audio controls class="mt-2 w-100">
-        <source src="audios/atencion-01.mp3" type="audio/mp3" />
-        Tu navegador no soporta audio embebido.
-      </audio>
+		<div class="audiotitulo">
+		  <strong>Atención plena 01</strong><br>
+		  <small>🎧 Voz: María Paulina Rubio</small>
+		</div>
+		<div class="player">
+			<audio controls class="mt-2 w-100">
+			<source src="audios/atencion-01.mp3" type="audio/mp3" />
+			Tu navegador no soporta audio embebido.
+			</audio>
+	    </div>
     </div>
     <!-- Más audios (ejemplo) -->
     <!--
-    <div class="list-group-item">
-      <strong>Meditación 02 – Nombre</strong><br>
-      <small>🎧 Voz: Facilitador/a</small>
-      <audio controls class="mt-2 w-100">
-        <source src="https://docs.google.com/uc?export=download&id=" type="audio/mp3" />
-        Tu navegador no soporta audio embebido.
-      </audio>
+	<div class="list-group-item">
+		<div class="audiotitulo">
+		  <strong>Titulo del Capitulo 01</strong><br>
+		  <small>🎧 Voz: Facilitador</small>
+		</div>
+		<div class="player">
+			<audio controls class="mt-2 w-100">
+			<source src="AUDIOLINK" type="audio/mp3" />
+			Tu navegador no soporta audio embebido.
+			</audio>
+	    </div>
     </div>
     -->
 
