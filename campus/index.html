@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Campus ARKA</title>
+
+  <!-- Bootstrap & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Poppins:wght@300;500&family=Raleway:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #fefdf9;
+      color: #333;
+    }
+    header {
+      background-color: #fff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .section {
+      padding: 60px 20px;
+      display: none;
+    }
+    .active-section {
+      display: block;
+    }
+    .nav-link {
+      cursor: pointer;
+      color: #29043d !important;
+      font-weight: 500;
+    }
+    .nav-link:hover {
+      text-decoration: underline;
+    }
+    .logo {
+      font-family: 'Raleway', sans-serif;
+      font-weight: 600;
+      font-size: 1.5rem;
+      color: #29043d;
+      text-decoration: none;
+    }
+    .btn-arka {
+      background-color: #29043d;
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      padding: 10px 20px;
+    }
+    .btn-arka:hover {
+      background-color: #3c2060;
+    }
+    #bienvenida {
+      padding: 100px 20px;
+      text-align: center;
+      background-color: #fefdf9;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Bienvenida -->
+  <div id="bienvenida">
+    <div class="container">
+      <h1 class="mb-4" style="color: #29043d;">Bienvenid@ al Campus ARKA</h1>
+      <p class="lead mb-4">
+        Este es un espacio digital para acompañarte en tu proceso de formación.  
+        Aquí encontrarás clases grabadas, materiales de lectura y audios de meditación  
+        para seguir profundizando en tu camino de autoconocimiento.  
+        Te invitamos a recorrer este espacio con apertura, presencia y compromiso.
+      </p>
+      <button class="btn btn-arka" onclick="iniciarCampus()">Ingresar al Campus</button>
+    </div>
+  </div>
+
+  <!-- Header y navegación -->
+  <header id="navHeader" class="sticky-top py-3" style="display: none;">
+    <div class="container d-flex justify-content-between align-items-center">
+      <a class="logo" href="#">ARKA Campus</a>
+      <nav>
+        <ul class="nav">
+          <li class="nav-item"><a class="nav-link" onclick="mostrarSeccion('clases')">Clases</a></li>
+          <li class="nav-item"><a class="nav-link" onclick="mostrarSeccion('libros')">Material</a></li>
+          <li class="nav-item"><a class="nav-link" onclick="mostrarSeccion('audios')">Audios</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Clases -->
+  <section id="clases" class="section container">
+    <h2 class="mb-4">Clases Virtuales Grabadas</h2>
+
+    <div class="list-group">
+      
+      <!-- Clase 1 -->
+      <button type="button" class="list-group-item list-group-item-action" 
+              data-bs-toggle="modal" 
+              data-bs-target="#videoModal" 
+              data-video="https://drive.google.com/file/d/1tQx0BbvXpbljoda9ZU_lqsbYgpXgiMkw/preview">
+        <strong>Clase 01:</strong> Orígenes de la Psicología Transpersonal<br>
+        <small>📅 15 de Mayo 2025 – 🎓 Nicolas Velazquez</small>
+      </button>
+      <br />
+      <!-- Clase 2 -->
+      <button type="button" class="list-group-item list-group-item-action" 
+              data-bs-toggle="modal" 
+              data-bs-target="#videoModal" 
+              data-video="https://drive.google.com/file/d/1dSEeP0fL7gMkBA6jhNFhu8ML1s4umH7D/preview">
+        <strong>Clase 02:</strong> Sombra, máscaras y heridas primarias<br>
+        <small>📅 29 de Mayo 2025 – 🎓 Nicolas Velazquez</small>
+      </button>
+      <br />
+
+      <!-- Clase 3 -->
+      <button type="button" class="list-group-item list-group-item-action" 
+              data-bs-toggle="modal" 
+              data-bs-target="#videoModal" 
+              data-video="https://drive.google.com/file/d/1OVuMhGVmQsL4HuAC6NjSn2DMWQDfq6ZX/preview">
+        <strong>Clase 03:</strong> Niño interior<br>
+        <small>📅 12 de junio 2025 – 🎓 Nicolas Velazquez</small>
+      </button>
+      <br />
+
+      <!-- Clase 4 -->
+      <button type="button" class="list-group-item list-group-item-action" 
+              data-bs-toggle="modal" 
+              data-bs-target="#videoModal" 
+              data-video="https://drive.google.com/file/d/16uCgvo3-DarOiJ7JjIXrjLU_QzXHr57M/preview">
+        <strong>Clase 04:</strong> Etapas del desarrollo / Caracteres Reichianos<br>
+        <small>📅 26 de junio 2025 – 🎓 German Doin</small>
+      </button>
+            <br />
+
+    </div>
+  </section>
+
+  <!-- Modal para reproducir video -->
+  <div class="modal fade" id="videoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Clase ARKA</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="ratio ratio-16x9">
+            <iframe id="videoFrame" src="" allow="autoplay" allowfullscreen></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- Libros -->
+<section id="libros" class="section container">
+  <h2 class="mb-4">Libros y Artículos en PDF</h2>
+
+  <div class="list-group">
+
+    <!-- Libro 1 -->
+    <a href="https://drive.google.com/file/d/1pl-54gCc31_V8NRKh7z6KdauilOBmjse/view?usp=drive_link" 
+       target="_blank" 
+       class="list-group-item list-group-item-action">
+      <strong>Infancia, la edad sagrada</strong><br>
+      <small>📄 Evania Reichert – PDF (Descarga/Visualización)</small>
+    </a>
+
+    <!-- Más libros (ejemplo) -->
+    <!--
+    <a href="LINK_DEL_PDF" target="_blank" class="list-group-item list-group-item-action">
+      <strong>Título del Libro</strong><br>
+      <small>📄 Autor/a – PDF</small>
+    </a>
+    -->
+
+  </div>
+</section>
+
+<!-- Audios -->
+<section id="audios" class="section container">
+  <h2 class="mb-4">Audios de Meditación</h2>
+
+  <div class="list-group">
+
+    <!-- Audio 1 -->
+    <div class="list-group-item">
+      <strong>Conciencia corporal 01</strong><br>
+      <small>🎧 Voz: María Paulina Rubio</small>
+      <audio controls class="mt-2 w-100">
+        <source src="audios/conciencia-01.mp3" type="audio/mp3" />
+        Tu navegador no soporta audio embebido.
+      </audio>
+    </div>
+<br />
+   <div class="list-group-item">
+      <strong>Atención plena 01</strong><br>
+      <small>🎧 Voz: María Paulina Rubio</small>
+      <audio controls class="mt-2 w-100">
+        <source src="audios/atencion-01.mp3" type="audio/mp3" />
+        Tu navegador no soporta audio embebido.
+      </audio>
+    </div>
+    <!-- Más audios (ejemplo) -->
+    <!--
+    <div class="list-group-item">
+      <strong>Meditación 02 – Nombre</strong><br>
+      <small>🎧 Voz: Facilitador/a</small>
+      <audio controls class="mt-2 w-100">
+        <source src="https://docs.google.com/uc?export=download&id=" type="audio/mp3" />
+        Tu navegador no soporta audio embebido.
+      </audio>
+    </div>
+    -->
+
+  </div>
+</section>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function iniciarCampus() {
+      document.getElementById('bienvenida').style.display = 'none';
+      document.getElementById('navHeader').style.display = 'block';
+      mostrarSeccion('clases');
+    }
+
+    function mostrarSeccion(id) {
+      document.querySelectorAll('.section').forEach(seccion => {
+        seccion.classList.remove('active-section');
+      });
+      document.getElementById(id).classList.add('active-section');
+    }
+
+    // Modal dinámico: insertar video en iframe cuando se abre
+    const videoModal = document.getElementById('videoModal');
+    videoModal.addEventListener('show.bs.modal', event => {
+      const button = event.relatedTarget;
+      const videoURL = button.getAttribute('data-video');
+      const iframe = document.getElementById('videoFrame');
+      iframe.src = videoURL;
+    });
+
+    // Limpiar iframe al cerrar
+    videoModal.addEventListener('hidden.bs.modal', () => {
+      const iframe = document.getElementById('videoFrame');
+      iframe.src = '';
+    });
+  </script>
+</body>
+</html>
