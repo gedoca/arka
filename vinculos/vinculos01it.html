@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inteligencia Vincular</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Space+Mono:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --c-void: #080810;
+    --c-deep: #0d0c1a;
+    --c-violet: #534AB7;
+    --c-violet-light: #AFA9EC;
+    --c-violet-faint: rgba(83,74,183,0.12);
+    --c-rose: #D4537E;
+    --c-rose-faint: rgba(212,83,126,0.1);
+    --c-white: #F2F0EC;
+    --c-offwhite: #E8E5DF;
+    --c-muted: rgba(242,240,236,0.45);
+    --c-ghost: rgba(242,240,236,0.18);
+    --font-display: 'EB Garamond', Georgia, serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--c-void);
+    color: var(--c-white);
+    font-family: var(--font-display);
+    overflow: hidden;
+    cursor: none;
+  }
+
+  /* ─── Custom cursor ─── */
+  #cursor {
+    position: fixed;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--c-violet-light);
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: width 0.2s, height 0.2s, background 0.2s;
+    mix-blend-mode: difference;
+  }
+
+  /* ─── Canvas layer (animated lines) ─── */
+  #canvas-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ─── Slide container ─── */
+  #deck {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 5vw 8vw;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity;
+  }
+
+  .slide.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* ─── Content enters with stagger ─── */
+  .slide .inner > * {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .slide.active .inner > *:nth-child(1) { opacity: 1; transform: none; transition-delay: 0.2s; }
+  .slide.active .inner > *:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.35s; }
+  .slide.active .inner > *:nth-child(3) { opacity: 1; transform: none; transition-delay: 0.5s; }
+  .slide.active .inner > *:nth-child(4) { opacity: 1; transform: none; transition-delay: 0.65s; }
+  .slide.active .inner > *:nth-child(5) { opacity: 1; transform: none; transition-delay: 0.8s; }
+  .slide.active .inner > *:nth-child(6) { opacity: 1; transform: none; transition-delay: 0.95s; }
+
+  /* ─── Typography ─── */
+  .tag {
+    font-family: var(--font-mono);
+    font-size: clamp(9px, 1.1vw, 11px);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--c-muted);
+    margin-bottom: clamp(1.5rem, 3vh, 2.5rem);
+  }
+
+  .display-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2.8rem, 7vw, 6rem);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    color: var(--c-white);
+    margin-bottom: clamp(1rem, 2.5vh, 2rem);
+  }
+
+  .display-title em {
+    font-style: italic;
+    color: var(--c-violet-light);
+  }
+
+  .slide-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(1.8rem, 4.5vw, 3.5rem);
+    line-height: 1.1;
+    color: var(--c-white);
+    margin-bottom: clamp(0.8rem, 2vh, 1.5rem);
+  }
+
+  .slide-title em { font-style: italic; color: var(--c-violet-light); }
+
+  .body {
+    font-family: var(--font-display);
+    font-size: clamp(1rem, 1.6vw, 1.25rem);
+    line-height: 1.7;
+    color: var(--c-muted);
+    max-width: 52ch;
+    margin-bottom: clamp(0.8rem, 2vh, 1.5rem);
+  }
+
+  .accent-line {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(1.1rem, 1.8vw, 1.4rem);
+    line-height: 1.55;
+    color: var(--c-offwhite);
+    max-width: 52ch;
+    padding-left: 1.5rem;
+    border-left: 1px solid var(--c-rose);
+    margin-bottom: clamp(0.8rem, 2vh, 1.5rem);
+  }
+
+  .quote {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(1.2rem, 2vw, 1.6rem);
+    line-height: 1.5;
+    color: var(--c-violet-light);
+    margin-bottom: 0.3rem;
+  }
+
+  .quote-autor {
+    font-family: var(--font-mono);
+    font-size: clamp(9px, 1vw, 11px);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--c-muted);
+  }
+
+  /* ─── Slide 0 ─── */
+  #s0 {
+    justify-content: center;
+    align-items: flex-start;
+    padding-left: 8vw;
+  }
+
+  #s0 .course-sub {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(1rem, 1.6vw, 1.3rem);
+    color: var(--c-muted);
+    margin-top: 1.2rem;
+    max-width: 44ch;
+    line-height: 1.55;
+    letter-spacing: 0;
+  }
+
+  /* ─── Slide 2: two cols ─── */
+  .two-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: clamp(0.8rem, 2vh, 1.5rem);
+    max-width: 60ch;
+  }
+
+  .col-block {
+    padding: 0.9rem 1.1rem;
+    border: 0.5px solid var(--c-ghost);
+    border-radius: 2px;
+  }
+
+  .col-block .col-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--c-muted);
+    margin-bottom: 0.4rem;
+  }
+
+  .col-block .col-text {
+    font-size: clamp(0.9rem, 1.3vw, 1.05rem);
+    line-height: 1.55;
+    color: var(--c-offwhite);
+  }
+
+  /* ─── Slide 3: tags ─── */
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: clamp(0.8rem, 2vh, 1.5rem);
+  }
+
+  .pill {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 4px 12px;
+    border: 0.5px solid var(--c-ghost);
+    border-radius: 99px;
+    color: var(--c-muted);
+  }
+
+  /* ─── Slide 4: capacidades ─── */
+  .cap-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+    max-width: 70ch;
+    margin-bottom: clamp(0.8rem, 2vh, 1.5rem);
+  }
+
+  .cap-item {
+    font-size: clamp(0.95rem, 1.4vw, 1.1rem);
+    color: rgba(242,240,236,0.65);
+    line-height: 1.4;
+    padding: 0.6rem 1.1rem;
+    border: 0.5px solid var(--c-ghost);
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  .cap-item::before {
+    content: '— ';
+    color: var(--c-violet);
+  }
+
+  .pregunta {
+    font-family: var(--font-display);
+    font-size: clamp(1.1rem, 1.8vw, 1.4rem);
+    color: var(--c-white);
+    line-height: 1.55;
+    max-width: 52ch;
+    padding: 1.1rem 1.4rem;
+    border: 0.5px solid rgba(175,169,236,0.35);
+    border-radius: 2px;
+    background: rgba(83,74,183,0.07);
+  }
+
+  /* ─── Pregunta central slide ─── */
+  .slide-pregunta-central {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+
+  .pregunta-grande {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(1.8rem, 4vw, 3.2rem);
+    color: var(--c-white);
+    line-height: 1.25;
+    max-width: 22ch;
+    letter-spacing: -0.01em;
+  }
+
+  .pregunta-grande em {
+    color: var(--c-violet-light);
+    font-style: italic;
+  }
+
+  /* ─── Mapa vincular slide ─── */
+  .mapa-vinculo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    height: 100%;
+    width: 100%;
+  }
+
+  .mapa-col {
+    display: flex;
+    flex-direction: column;
+    padding: 5vh 6vw;
+    border-right: 0.5px solid var(--c-ghost);
+  }
+
+  .mapa-col:last-child { border-right: none; }
+
+  .mapa-col-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2.2rem, 5vw, 4rem);
+    line-height: 1;
+    margin-bottom: clamp(2rem, 4vh, 3.5rem);
+  }
+
+  .mapa-col:first-child .mapa-col-title { color: var(--c-violet-light); }
+  .mapa-col:last-child .mapa-col-title { color: var(--c-rose); font-style: italic; }
+
+  .mapa-instruccion {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--c-muted);
+    margin-bottom: 1.5rem;
+    opacity: 0.6;
+  }
+
+  .mapa-linea {
+    border: none;
+    border-bottom: 0.5px solid rgba(242,240,236,0.12);
+    margin-bottom: clamp(1.2rem, 2.5vh, 2rem);
+    width: 100%;
+  }
+
+  /* ─── Nav ─── */
+  #nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.2rem 4vw;
+    border-top: 0.5px solid var(--c-ghost);
+  }
+
+  .nav-dots {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--c-ghost);
+    border: none;
+    cursor: none;
+    transition: background 0.3s, transform 0.3s;
+    padding: 0;
+  }
+
+  .dot.on {
+    background: var(--c-violet-light);
+    transform: scale(1.6);
+  }
+
+  #counter {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--c-muted);
+  }
+
+  .arrow-btns {
+    display: flex;
+    gap: 8px;
+  }
+
+  .arr {
+    width: 36px; height: 36px;
+    border: 0.5px solid var(--c-ghost);
+    background: transparent;
+    color: var(--c-white);
+    font-size: 15px;
+    cursor: none;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .arr:hover {
+    border-color: var(--c-violet-light);
+    background: var(--c-violet-faint);
+  }
+
+  #s1b .inner > *:nth-child(1) { opacity: 0; transform: translateY(18px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  #s1b .inner > *:nth-child(2) { opacity: 0; transform: translateY(18px); transition: opacity 0.9s ease, transform 0.9s ease; }
+  #s1b.active .inner > *:nth-child(1) { opacity: 1; transform: none; transition-delay: 0.2s; }
+  #s1b.active .inner > *:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.5s; }
+
+  #s2b .mapa-col { opacity: 0; transform: translateY(14px); transition: opacity 0.8s ease, transform 0.8s ease; }
+  #s2b.active .mapa-col:nth-child(1) { opacity: 1; transform: none; transition-delay: 0.3s; }
+  #s2b.active .mapa-col:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.55s; }
+
+  /* hint */
+  #hint {
+    position: fixed;
+    bottom: 5.5rem;
+    right: 4vw;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--c-muted);
+    opacity: 1;
+    transition: opacity 1.5s;
+    pointer-events: none;
+    z-index: 200;
+  }
+
+  #hint.gone { opacity: 0; }
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<canvas id="canvas-bg"></canvas>
+<div id="deck">
+
+  <!-- S0 Portada -->
+  <div class="slide active" id="s0">
+    <div class="inner">
+      <div class="tag">Corso · 2026</div>
+      <div class="display-title"><em>Intelligenza</em><br>Vincolare</div>
+      <div class="course-sub">La capacità di leggere, abitare e sostenere vincoli vivi</div>
+    </div>
+  </div>
+
+  <!-- S1 -->
+  <div class="slide" id="s1">
+    <div class="inner">
+      <div class="tag">01 — Apertura · Dove avviene l'apprendimento?</div>
+      <div class="slide-title">Il vincolo come <em>scenario</em></div>
+      <div class="body">Non impariamo in solitudine. Impariamo in un campo di interazione, spesso invisibile, che ci influenza e ci organizza.</div>
+      <div class="accent-line">Prima di parlare di tecniche o contenuti, dobbiamo guardare dove avviene realmente l'apprendimento.</div>
+      <div class="quote">"La relazione è il fondamento della percezione."</div>
+      <div class="quote-autor">— Carutti</div>
+    </div>
+  </div>
+
+  <!-- S1b — Pregunta -->
+  <div class="slide slide-pregunta-central" id="s1b">
+    <div class="inner" style="display:flex;flex-direction:column;align-items:center">
+      <div class="tag" style="text-align:center;margin-bottom:clamp(2rem,5vh,4rem)">Pausa · Domanda</div>
+      <div class="pregunta-grande">Riesci a identificare quando la tua <em>relazione</em> influenza la tua <em>percezione</em>?</div>
+    </div>
+  </div>
+
+  <!-- S2 -->
+  <div class="slide" id="s2">
+    <div class="inner">
+      <div class="tag">02 — Distinzione centrale</div>
+      <div class="slide-title">Vincolo non è <em>relazione</em></div>
+      <div class="two-cols">
+        <div class="col-block">
+          <div class="col-label">Relazione</div>
+          <div class="col-text">La forma visibile e fissata: ruoli, accordi, parole, strutture.</div>
+        </div>
+        <div class="col-block">
+          <div class="col-label">Vincolo</div>
+          <div class="col-text">L'interazione emergente e mutevole tra due persone. Il campo vivo che circola tra noi.</div>
+        </div>
+      </div>
+      <div class="quote">"Possiamo avere una 'buona relazione' e un vincolo morto. <br /> O una relazione conflittuale e un vincolo profondamente vivo."</div>
+      <div class="body" style="margin-top:0.8rem">Il vincolo non è ciò che ciascuno "è", ma ciò che emerge <em style="font-style:italic;color:var(--c-violet-light)">tra</em>.</div>
+    </div>
+  </div>
+
+  <!-- S2b — Mapa vincular -->
+  <div class="slide" id="s2b" style="padding:0; flex-direction:column;">
+    <!-- top: text + lines -->
+    <div class="mapa-vinculo" style="flex:0 0 52%; border-bottom: 0.5px solid rgba(242,240,236,0.1);">
+      <div class="mapa-col">
+        <div class="mapa-col-title">Vincolo</div>
+        <div class="mapa-instruccion">Scrivi dei nomi su un foglio</div>
+        <hr class="mapa-linea">
+        <hr class="mapa-linea">
+        <hr class="mapa-linea">
+      </div>
+      <div class="mapa-col">
+        <div class="mapa-col-title">Relazione</div>
+        <div class="mapa-instruccion">&nbsp;</div>
+        <hr class="mapa-linea">
+        <hr class="mapa-linea">
+        <hr class="mapa-linea">
+      </div>
+    </div>
+    <!-- bottom: canvases -->
+    <div style="flex:1; display:grid; grid-template-columns:1fr 1fr; border-top:0.5px solid rgba(242,240,236,0.06);">
+      <div style="position:relative; border-right:0.5px solid rgba(242,240,236,0.1);">
+        <canvas id="cv-vinculo" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
+      </div>
+      <div style="position:relative;">
+        <canvas id="cv-relacion" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- S3 -->
+  <div class="slide" id="s3">
+    <div class="inner">
+      <div class="tag">03 — Il campo vincolare</div>
+      <div class="slide-title">Il vincolo come <em>campo vivo</em></div>
+      <div class="body">Il vincolo non appartiene a nessuna persona. È un sistema dinamico dove circola informazione, tensione, emozione e senso.</div>
+      <div class="tags">
+        <span class="pill">modelli</span>
+        <span class="pill">risonanze</span>
+        <span class="pill">silenzi</span>
+        <span class="pill">ritmi</span>
+        <span class="pill">tensione</span>
+      </div>
+      <div class="quote">"L'informazione è nel vincolo."</div>
+      <div class="quote-autor" style="margin-bottom:1.2rem">— Carutti</div>
+      <div class="accent-line">Il soggetto non è previo al vincolo: si configura al suo interno. — Psicologia Sociale</div>
+    </div>
+  </div>
+
+  <!-- S4 -->
+  <div class="slide" id="s4">
+    <div class="inner">
+      <div class="tag">04 — Punto di partenza del corso</div>
+      <div class="slide-title">Cos'è l'<em>intelligenza vincolare</em>?</div>
+      <div class="cap-grid">
+        <div class="cap-item">Leggere l'informazione che circola in un vincolo</div>
+        <div class="cap-item">Riconoscere la propria posizione e permettersi di muoversi</div>
+        <div class="cap-item">Sostenere ed essere permeabili alla differenza</div>
+        <div class="cap-item">Lasciarsi trasformare dal disagio</div>
+      </div>
+      <div class="quote">"Non esiste una cosa come una mente individuale."</div>
+      <div class="quote-autor" style="margin-bottom:1rem">— Carutti</div>
+      <div class="pregunta">Cosa succede solitamente in te quando il vincolo diventa scomodo?</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Nav -->
+<div id="nav">
+  <div class="nav-dots" id="navDots"></div>
+  <span id="counter">1 / 7</span>
+  <div class="arrow-btns">
+    <button class="arr" id="prev">&#8592;</button>
+    <button class="arr" id="next">&#8594;</button>
+  </div>
+</div>
+
+<div id="hint">Cursori ← →</div>
+
+<script>
+// ─── Cursor ───
+const cur = document.getElementById('cursor');
+document.addEventListener('mousemove', e => {
+  cur.style.left = e.clientX + 'px';
+  cur.style.top = e.clientY + 'px';
+});
+
+// ─── Canvas: organic animated lines ───
+const canvas = document.getElementById('canvas-bg');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Each "vein" is a flowing polyline driven by noise-like accumulation
+class Vein {
+  constructor(opts) {
+    this.reset(opts);
+  }
+
+  reset(opts = {}) {
+    this.x = opts.x ?? Math.random() * W;
+    this.y = opts.y ?? Math.random() * H;
+    this.angle = opts.angle ?? Math.random() * Math.PI * 2;
+    this.speed = 0.4 + Math.random() * 0.6;
+    this.life = 0;
+    this.maxLife = 200 + Math.random() * 300;
+    this.noiseOff = Math.random() * 1000;
+    this.points = [{x: this.x, y: this.y}];
+    this.hue = Math.random() < 0.6 ? 'violet' : 'rose';
+    this.alpha = 0.06 + Math.random() * 0.1;
+    this.width = 0.4 + Math.random() * 0.8;
+    this.jitter = 0.6 + Math.random() * 1.2; // chaotic steering
+    this.turnRate = (Math.random() - 0.5) * 0.08;
+    this.segments = 0;
+    this.maxSegments = 80 + Math.floor(Math.random() * 120);
+  }
+
+  step(t) {
+    if (this.segments >= this.maxSegments) return;
+    // noisy angle drift — use sin layering for organic feel
+    const noise =
+      Math.sin(t * 0.0007 + this.noiseOff) * 0.04 +
+      Math.sin(t * 0.003 + this.noiseOff * 1.3) * 0.025 +
+      Math.sin(t * 0.011 + this.noiseOff * 0.7) * 0.015;
+    this.angle += this.turnRate + noise + (Math.random() - 0.5) * 0.03 * this.jitter;
+    this.x += Math.cos(this.angle) * this.speed;
+    this.y += Math.sin(this.angle) * this.speed;
+    this.points.push({x: this.x, y: this.y});
+    this.life++;
+    this.segments++;
+  }
+
+  draw() {
+    if (this.points.length < 2) return;
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.strokeStyle = this.hue === 'violet' ? '#7F77DD' : '#D4537E';
+    ctx.lineWidth = this.width;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(this.points[0].x, this.points[0].y);
+    for (let i = 1; i < this.points.length; i++) {
+      // tiny wobble per segment for irregular feel
+      const wx = this.points[i].x + (Math.random() - 0.5) * 0.4;
+      const wy = this.points[i].y + (Math.random() - 0.5) * 0.4;
+      ctx.lineTo(wx, wy);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  done() {
+    const p = this.points[this.points.length - 1];
+    return this.segments >= this.maxSegments ||
+      p.x < -60 || p.x > W + 60 || p.y < -60 || p.y > H + 60;
+  }
+}
+
+// ─── Particle sparks ───
+class Spark {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.r = 0.6 + Math.random() * 1.4;
+    this.alpha = 0;
+    this.targetAlpha = 0.1 + Math.random() * 0.25;
+    this.life = 0;
+    this.maxLife = 120 + Math.random() * 200;
+    this.violet = Math.random() < 0.5;
+  }
+  step() {
+    this.life++;
+    const progress = this.life / this.maxLife;
+    if (progress < 0.2) this.alpha = (progress / 0.2) * this.targetAlpha;
+    else if (progress > 0.7) this.alpha = ((1 - progress) / 0.3) * this.targetAlpha;
+    else this.alpha = this.targetAlpha;
+  }
+  draw() {
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.fillStyle = this.violet ? '#AFA9EC' : '#D4537E';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  done() { return this.life >= this.maxLife; }
+}
+
+const veins = [];
+const sparks = [];
+const MAX_VEINS = 14;
+const MAX_SPARKS = 35;
+
+// seed initial
+for (let i = 0; i < MAX_VEINS; i++) {
+  veins.push(new Vein());
+}
+for (let i = 0; i < MAX_SPARKS; i++) {
+  const s = new Spark();
+  s.life = Math.floor(Math.random() * s.maxLife);
+  sparks.push(s);
+}
+
+let mouseX = W / 2, mouseY = H / 2;
+document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+
+let frameCount = 0;
+function animate(t) {
+  requestAnimationFrame(animate);
+  frameCount++;
+
+  // very slow fade — trails linger
+  ctx.fillStyle = 'rgba(8,8,16,0.022)';
+  ctx.fillRect(0, 0, W, H);
+
+  // step + draw veins
+  for (let i = veins.length - 1; i >= 0; i--) {
+    veins[i].step(t);
+    veins[i].draw();
+    if (veins[i].done()) {
+      veins.splice(i, 1);
+    }
+  }
+
+  // spawn new veins periodically
+  if (frameCount % 22 === 0 && veins.length < MAX_VEINS) {
+    // occasionally spawn from mouse area
+    const nearMouse = Math.random() < 0.3;
+    veins.push(new Vein({
+      x: nearMouse ? mouseX + (Math.random() - 0.5) * 60 : Math.random() * W,
+      y: nearMouse ? mouseY + (Math.random() - 0.5) * 60 : Math.random() * H,
+    }));
+  }
+
+  // sparks
+  for (let i = sparks.length - 1; i >= 0; i--) {
+    sparks[i].step();
+    sparks[i].draw();
+    if (sparks[i].done()) {
+      sparks[i].reset();
+    }
+  }
+
+  // slow ambient pulse ring near mouse (very subtle)
+  if (frameCount % 3 === 0) {
+    const pulse = (Math.sin(t * 0.001) + 1) * 0.5;
+    ctx.save();
+    ctx.globalAlpha = 0.015 * pulse;
+    ctx.strokeStyle = '#7F77DD';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.arc(mouseX, mouseY, 40 + pulse * 20, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+animate(0);
+
+// ─── Slides ───
+const slides = Array.from(document.querySelectorAll('.slide'));
+const total = slides.length;
+let cur2 = 0;
+
+const dotsEl = document.getElementById('navDots');
+const counterEl = document.getElementById('counter');
+const dots = [];
+
+for (let i = 0; i < total; i++) {
+  const d = document.createElement('button');
+  d.className = 'dot' + (i === 0 ? ' on' : '');
+  d.setAttribute('aria-label', 'Slide ' + (i + 1));
+  d.addEventListener('click', () => goTo(i));
+  dotsEl.appendChild(d);
+  dots.push(d);
+}
+
+function goTo(n) {
+  slides[cur2].classList.remove('active');
+  dots[cur2].classList.remove('on');
+  cur2 = (n + total) % total;
+  slides[cur2].classList.add('active');
+  dots[cur2].classList.on = true;
+  dots[cur2].classList.add('on');
+  counterEl.textContent = (cur2 + 1) + ' / ' + total;
+  // burst of new veins on transition
+  for (let i = 0; i < 3; i++) {
+    veins.push(new Vein({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      angle: Math.random() * Math.PI * 2
+    }));
+  }
+}
+
+document.getElementById('prev').addEventListener('click', () => goTo(cur2 - 1));
+document.getElementById('next').addEventListener('click', () => goTo(cur2 + 1));
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goTo(cur2 + 1);
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') goTo(cur2 - 1);
+});
+
+// ─── Network simulations for s2b ───────────────────────────────────────────
+
+function initNetworks() {
+  const cvV = document.getElementById('cv-vinculo');
+  const cvR = document.getElementById('cv-relacion');
+  if (!cvV || !cvR) return;
+
+  const DPR = window.devicePixelRatio || 1;
+
+  function sizeCanvas(c) {
+    const r = c.parentElement.getBoundingClientRect();
+    c.width = r.width * DPR;
+    c.height = r.height * DPR;
+    c.style.width = r.width + 'px';
+    c.style.height = r.height + 'px';
+  }
+  sizeCanvas(cvV); sizeCanvas(cvR);
+  window.addEventListener('resize', () => { sizeCanvas(cvV); sizeCanvas(cvR); });
+
+  const ctxV = cvV.getContext('2d');
+  const ctxR = cvR.getContext('2d');
+
+  // ══ VINCULAR ══════════════════════════════════════════════════════════════
+  // 12 nodes. Physics: chaotic inertia dominant, weak variable magnetism.
+  // Each pair oscillates independently through attract / indifferent / repel.
+  // Hard minimum distance = 2× the sum of radii (no overlap ever).
+
+  const VCOLORS = ['#AFA9EC','#D4537E','#5DCAA5','#EF9F27'];
+  const NV = 12;
+
+  const nodesV = Array.from({length: NV}, () => ({
+    x:  0.12 + Math.random() * 0.76,
+    y:  0.12 + Math.random() * 0.76,
+    // higher initial velocity → dominant inertia
+    vx: (Math.random() - 0.5) * 0.007,
+    vy: (Math.random() - 0.5) * 0.007,
+    phase:    Math.random() * Math.PI * 2,
+    magSpeed: 0.06 + Math.random() * 0.18,   // slower, lazier polarity drift
+    r: 7 + Math.random() * 5,
+    hue: Math.floor(Math.random() * 4),
+    mass: 0.8 + Math.random() * 0.5,
+    // each node has its own "engagement" oscillator — controls whether it
+    // participates in any magnetic interaction at all
+    engPhase: Math.random() * Math.PI * 2,
+    engSpeed: 0.04 + Math.random() * 0.09,
+  }));
+
+  // per-pair coupling phases (asynchronous)
+  const pairPhase = {};
+  // per-pair engagement threshold (random: some pairs rarely interact)
+  const pairEngThresh = {};
+  for (let i = 0; i < NV; i++) {
+    for (let j = i+1; j < NV; j++) {
+      pairPhase[`${i}_${j}`]    = Math.random() * Math.PI * 2;
+      // threshold ∈ [0.2, 0.8] — pairs with high threshold stay indifferent most of the time
+      pairEngThresh[`${i}_${j}`] = 0.2 + Math.random() * 0.6;
+    }
+  }
+
+  function stepVincular(t) {
+    const fx = new Array(NV).fill(0);
+    const fy = new Array(NV).fill(0);
+
+    for (let i = 0; i < NV; i++) {
+      for (let j = i+1; j < NV; j++) {
+        const ni = nodesV[i], nj = nodesV[j];
+        const dx = nj.x - ni.x;
+        const dy = nj.y - ni.y;
+        const d  = Math.sqrt(dx*dx + dy*dy) + 0.0001;
+        const ux = dx / d, uy = dy / d;
+
+        // ── Minimum distance enforcement (2 × avg diameter) ──
+        // pixel-space radius → normalized: r * DPR * 0.6 / canvasWidth
+        // We use a conservative normalized minD based on max node r (12px)
+        const minD = (ni.r + nj.r) * DPR * 0.6 * 2 / (cvV.width || 400);
+        if (d < minD) {
+          // hard push apart — proportional to overlap depth
+          const push = (minD - d) * 0.08;
+          fx[i] -= ux * push / ni.mass;
+          fy[i] -= uy * push / ni.mass;
+          fx[j] += ux * push / nj.mass;
+          fy[j] += uy * push / nj.mass;
+          continue; // skip magnetic for this pair when overlapping
+        }
+
+        // ── Per-node engagement: sin² gives a [0,1] "activation" ──
+        const engI = Math.pow(Math.sin(t * ni.engSpeed + ni.engPhase), 2);
+        const engJ = Math.pow(Math.sin(t * nj.engSpeed + nj.engPhase), 2);
+        const engPair = engI * engJ; // both must be "open" for interaction
+
+        const key = `${i}_${j}`;
+        const thresh = pairEngThresh[key];
+
+        // below threshold → indifferent, no magnetic force
+        if (engPair < thresh) continue;
+
+        // coupling oscillates chaotically — two overlapping slow sines
+        const coupling =
+          Math.sin(t * ni.magSpeed + pairPhase[key]) *
+          Math.cos(t * nj.magSpeed * 0.7 + pairPhase[key] * 1.3);
+
+        // very weak base force, falls off with distance
+        const effD = Math.max(d, minD * 1.2);
+        const mag  = coupling * 0.000035 / (effD * effD);
+
+        fx[i] += ux * mag / ni.mass;
+        fy[i] += uy * mag / ni.mass;
+        fx[j] -= ux * mag / nj.mass;
+        fy[j] -= uy * mag / nj.mass;
+      }
+
+      // very soft centering — barely perceptible
+      fx[i] += (0.5 - nodesV[i].x) * 0.000025;
+      fy[i] += (0.5 - nodesV[i].y) * 0.000025;
+
+      // tiny random chaotic kick each frame
+      fx[i] += (Math.random() - 0.5) * 0.00012;
+      fy[i] += (Math.random() - 0.5) * 0.00012;
+    }
+
+    // integrate — high inertia (friction close to 1 = velocity persists)
+    nodesV.forEach((n, i) => {
+      n.phase    += 0.001 + n.magSpeed * 0.001;
+      n.engPhase += n.engSpeed * 0.016;
+      n.vx = (n.vx + fx[i]) * 0.994;   // very low friction → gliding inertia
+      n.vy = (n.vy + fy[i]) * 0.994;
+      const mv = 0.009;
+      n.vx = Math.max(-mv, Math.min(mv, n.vx));
+      n.vy = Math.max(-mv, Math.min(mv, n.vy));
+      n.x += n.vx; n.y += n.vy;
+      // soft wall bounce
+      if (n.x < 0.04) { n.x = 0.04; n.vx =  Math.abs(n.vx) * 0.7; }
+      if (n.x > 0.96) { n.x = 0.96; n.vx = -Math.abs(n.vx) * 0.7; }
+      if (n.y < 0.04) { n.y = 0.04; n.vy =  Math.abs(n.vy) * 0.7; }
+      if (n.y > 0.96) { n.y = 0.96; n.vy = -Math.abs(n.vy) * 0.7; }
+    });
+  }
+
+  function drawVincular(ts) {
+    const W = cvV.width, H = cvV.height;
+    const t = ts * 0.001;
+    ctxV.clearRect(0, 0, W, H);
+
+    stepVincular(t);
+
+    // edges
+    for (let i = 0; i < NV; i++) {
+      for (let j = i+1; j < NV; j++) {
+        const na = nodesV[i], nb = nodesV[j];
+        const dx = na.x - nb.x, dy = na.y - nb.y;
+        const d  = Math.sqrt(dx*dx + dy*dy);
+        const key = `${i}_${j}`;
+
+        // only draw edge when pair is actually engaged
+        const engI = Math.pow(Math.sin(t * na.engSpeed + na.engPhase), 2);
+        const engJ = Math.pow(Math.sin(t * nb.engSpeed + nb.engPhase), 2);
+        if (engI * engJ < pairEngThresh[key]) continue;
+
+        const thr = 0.38 + 0.14 * Math.sin(t * 0.45 + pairPhase[key]);
+        if (d >= thr) continue;
+
+        const prox = 1 - d / thr;
+        const coupling =
+          Math.sin(t * na.magSpeed + pairPhase[key]) *
+          Math.cos(t * nb.magSpeed * 0.7 + pairPhase[key] * 1.3);
+        const isAttracting = coupling > 0;
+
+        const lw = isAttracting
+          ? 1.2 + 4 * prox * Math.abs(coupling)
+          : 0.6 + 1.2 * prox;
+
+        const ax = na.x*W, ay = na.y*H, bx = nb.x*W, by = nb.y*H;
+        const grad = ctxV.createLinearGradient(ax, ay, bx, by);
+        grad.addColorStop(0, VCOLORS[na.hue]);
+        grad.addColorStop(1, VCOLORS[nb.hue]);
+        const mx = (ax+bx)/2 + Math.sin(t*0.85 + i*1.9) * 11;
+        const my = (ay+by)/2 + Math.cos(t*0.72 + j*1.6) * 11;
+
+        ctxV.save();
+        ctxV.globalAlpha = prox * (isAttracting ? 0.75 : 0.28);
+        ctxV.strokeStyle = grad;
+        ctxV.lineWidth = lw;
+        ctxV.lineCap = 'round';
+        if (!isAttracting) ctxV.setLineDash([3, 8]);
+        ctxV.beginPath();
+        ctxV.moveTo(ax, ay);
+        ctxV.quadraticCurveTo(mx, my, bx, by);
+        ctxV.stroke();
+        ctxV.setLineDash([]);
+        ctxV.restore();
+      }
+    }
+
+    // nodes
+    nodesV.forEach(n => {
+      const x = n.x*W, y = n.y*H;
+      const pulse = 1 + 0.22 * Math.sin(t * 2.2 + n.phase);
+      const r = n.r * pulse * DPR * 0.6;
+      ctxV.save();
+      ctxV.globalAlpha = 0.93;
+      ctxV.fillStyle = VCOLORS[n.hue];
+      ctxV.beginPath();
+      ctxV.arc(x, y, r, 0, Math.PI*2);
+      ctxV.fill();
+      ctxV.restore();
+      if (Math.random() < 0.0012) n.hue = (n.hue + 1) % VCOLORS.length;
+    });
+  }
+
+  // ══ RELACIONAL ════════════════════════════════════════════════════════════
+  // Three distinct structures, all 20% faster:
+  //  A) Dyad: just 2 nodes orbiting each other — a closed pair
+  //  B) Hierarchy 3-level: 1 apex → 2 mid → 4 leaves (pyramid)
+  //  C) Ring: 1 hub + 3 equidistant satellites (original flat structure)
+  // Structures drift independently; tension lines appear when close but
+  // no cross-structure edges ever form.
+
+  const SPD = 1.2; // +20% speed multiplier
+
+  // ── Cluster A: Dyad ──
+  const dyadG = { color: '#EF9F27', hubColor: '#BA7517', cx: 0.22, cy: 0.38 };
+  const dyadDrift = { r: 0.10, speed: SPD * 0.14, phase: 0.0 };
+  const dyad = [
+    { bx: -0.09, by: 0, orbitR: 0.022, orbitSpeed: SPD*0.38, orbitPhase: 0,    r: 8,  level: 0 },
+    { bx:  0.09, by: 0, orbitR: 0.022, orbitSpeed: SPD*0.38, orbitPhase: Math.PI, r: 8, level: 0 },
+  ];
+
+  // ── Cluster B: 3-level hierarchy ──
+  const hierG = { cx: 0.62, cy: 0.30 };
+  const hierColors = ['#D4537E', '#F0997B', '#AFA9EC']; // apex, mid, leaves
+  const hierDrift  = { r: 0.08, speed: SPD * 0.11, phase: 2.1 };
+  // level 0 = apex (1), level 1 = mid (2), level 2 = leaves (4)
+  const hierNodes = [
+    // apex
+    { bx: 0, by: -0.18, orbitR: 0.01, orbitSpeed: SPD*0.22, orbitPhase: 0, r: 10, level: 0 },
+    // mid
+    { bx: -0.15, by: 0.0, orbitR: 0.014, orbitSpeed: SPD*0.28, orbitPhase: 0.5, r: 7, level: 1 },
+    { bx:  0.15, by: 0.0, orbitR: 0.014, orbitSpeed: SPD*0.28, orbitPhase: 2.6, r: 7, level: 1 },
+    // leaves
+    { bx: -0.24, by: 0.16, orbitR: 0.016, orbitSpeed: SPD*0.33, orbitPhase: 1.0, r: 5, level: 2 },
+    { bx: -0.07, by: 0.19, orbitR: 0.016, orbitSpeed: SPD*0.35, orbitPhase: 2.2, r: 5, level: 2 },
+    { bx:  0.07, by: 0.19, orbitR: 0.016, orbitSpeed: SPD*0.32, orbitPhase: 3.4, r: 5, level: 2 },
+    { bx:  0.24, by: 0.16, orbitR: 0.016, orbitSpeed: SPD*0.34, orbitPhase: 0.8, r: 5, level: 2 },
+  ];
+  // fixed edges: apex→mid, mid→leaves
+  const hierEdges = [[0,1],[0,2],[1,3],[1,4],[2,5],[2,6]];
+
+  // ── Cluster C: flat ring hub+3 ──
+  const ringG  = { color: '#AFA9EC', hubColor: '#7F77DD', cx: 0.70, cy: 0.68 };
+  const ringDrift = { r: 0.09, speed: SPD * 0.13, phase: 4.2 };
+  const SAT_D = 0.17;
+  const ringNodes = [
+    { bx: 0, by: 0, orbitR: SPD*0.008, orbitSpeed: SPD*0.30, orbitPhase: 0, r: 9, isHub: true },
+    ...[0, 2.09, 4.19].map((a, si) => ({
+      bx: Math.cos(a)*SAT_D, by: Math.sin(a)*SAT_D,
+      orbitR: SPD*0.016, orbitSpeed: SPD*(0.32 + si*0.04), orbitPhase: a,
+      r: 5.5, isHub: false,
+    })),
+  ];
+
+  // All structures share one update + draw function
+  function updateCluster(nodes, cx, cy, t) {
+    nodes.forEach(n => {
+      const angle = t * n.orbitSpeed + n.orbitPhase;
+      n.x = cx + n.bx + Math.cos(angle) * n.orbitR;
+      n.y = cy + n.by + Math.sin(angle) * n.orbitR;
+    });
+  }
+
+  function drawEdge(ctx, x1, y1, x2, y2, color, lw, alpha) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawNode(ctx, x, y, r, color, alpha) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // representative hub positions for each structure (for tension lines)
+  const structHubs = [
+    { nodes: dyad,      drift: dyadDrift,  baseX: dyadG.cx,  baseY: dyadG.cy },
+    { nodes: hierNodes, drift: hierDrift,  baseX: hierG.cx,  baseY: hierG.cy },
+    { nodes: ringNodes, drift: ringDrift,  baseX: ringG.cx,  baseY: ringG.cy },
+  ];
+
+  function drawRelacional(ts) {
+    const W = cvR.width, H = cvR.height;
+    const t = ts * 0.001;
+    ctxR.clearRect(0, 0, W, H);
+
+    // compute drifted centers
+    const centers = structHubs.map(s => ({
+      cx: s.baseX + Math.cos(t * s.drift.speed + s.drift.phase) * s.drift.r,
+      cy: s.baseY + Math.sin(t * s.drift.speed * 0.8 + s.drift.phase) * s.drift.r,
+    }));
+
+    // update node positions
+    updateCluster(dyad,      centers[0].cx, centers[0].cy, t);
+    updateCluster(hierNodes, centers[1].cx, centers[1].cy, t);
+    updateCluster(ringNodes, centers[2].cx, centers[2].cy, t);
+
+    // inter-structure tension lines
+    const hubPts = [
+      { x: dyad[0].x,      y: dyad[0].y },
+      { x: hierNodes[0].x, y: hierNodes[0].y },
+      { x: ringNodes[0].x, y: ringNodes[0].y },
+    ];
+    for (let i = 0; i < 3; i++) {
+      for (let j = i+1; j < 3; j++) {
+        const dx = hubPts[i].x - hubPts[j].x, dy = hubPts[i].y - hubPts[j].y;
+        const d  = Math.sqrt(dx*dx + dy*dy);
+        const ta = Math.max(0, 0.2 - d * 0.38);
+        if (ta > 0.01) {
+          ctxR.save();
+          ctxR.globalAlpha = ta;
+          ctxR.strokeStyle = '#fff';
+          ctxR.lineWidth = 1;
+          ctxR.setLineDash([3, 11]);
+          ctxR.beginPath();
+          ctxR.moveTo(hubPts[i].x*W, hubPts[i].y*H);
+          ctxR.lineTo(hubPts[j].x*W, hubPts[j].y*H);
+          ctxR.stroke();
+          ctxR.setLineDash([]);
+          ctxR.restore();
+        }
+      }
+    }
+
+    // ── Draw Dyad (A) ──
+    {
+      const [a, b] = dyad;
+      const ax = a.x*W, ay = a.y*H, bx2 = b.x*W, by2 = b.y*H;
+      drawEdge(ctxR, ax, ay, bx2, by2, dyadG.color, 3, 0.7);
+      drawNode(ctxR, ax, ay, a.r*DPR*0.58, dyadG.hubColor, 0.95);
+      drawNode(ctxR, bx2, by2, b.r*DPR*0.58, dyadG.color, 0.85);
+    }
+
+    // ── Draw Hierarchy (B) ──
+    {
+      hierEdges.forEach(([a, b]) => {
+        const na = hierNodes[a], nb = hierNodes[b];
+        // edge color = color of the higher (lower level number) node
+        const col = hierColors[na.level];
+        const lw  = na.level === 0 ? 3 : 2;
+        drawEdge(ctxR, na.x*W, na.y*H, nb.x*W, nb.y*H, col, lw, 0.65);
+      });
+      hierNodes.forEach(n => {
+        drawNode(ctxR, n.x*W, n.y*H, n.r*DPR*0.58, hierColors[n.level],
+                 n.level === 0 ? 0.97 : n.level === 1 ? 0.82 : 0.70);
+      });
+    }
+
+    // ── Draw Ring (C) ──
+    {
+      const hub = ringNodes[0];
+      const hx = hub.x*W, hy = hub.y*H;
+      ringNodes.slice(1).forEach(sat => {
+        drawEdge(ctxR, hx, hy, sat.x*W, sat.y*H, ringG.color, 2.5, 0.65);
+      });
+      ringNodes.forEach(n => {
+        drawNode(ctxR, n.x*W, n.y*H, n.r*DPR*0.58,
+                 n.isHub ? ringG.hubColor : ringG.color,
+                 n.isHub ? 0.95 : 0.75);
+      });
+    }
+  }
+
+  // unified loop, only runs when slide is active
+  let networkActive = false;
+  function networkLoop(ts) {
+    if (!networkActive) return;
+    drawVincular(ts);
+    drawRelacional(ts);
+    requestAnimationFrame(networkLoop);
+  }
+
+  const s2bSlide = document.getElementById('s2b');
+  const obs = new MutationObserver(() => {
+    if (s2bSlide.classList.contains('active')) {
+      if (!networkActive) { networkActive = true; requestAnimationFrame(networkLoop); }
+    } else {
+      networkActive = false;
+    }
+  });
+  obs.observe(s2bSlide, {attributes: true, attributeFilter: ['class']});
+}
+
+initNetworks();
+
+// hide hint after 4s
+setTimeout(() => document.getElementById('hint').classList.add('gone'), 4000);
+</script>
+</body>
+</html>
