@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inteligencia Vincular · Clase 2</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Space+Mono:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --c-void: #080810;
+    --c-deep: #0d0c1a;
+    --c-violet: #534AB7;
+    --c-violet-light: #AFA9EC;
+    --c-violet-faint: rgba(83,74,183,0.12);
+    --c-rose: #D4537E;
+    --c-teal: #5DCAA5;
+    --c-amber: #EF9F27;
+    --c-white: #F2F0EC;
+    --c-offwhite: #E8E5DF;
+    --c-muted: rgba(242,240,236,0.45);
+    --c-ghost: rgba(242,240,236,0.18);
+    --font-display: 'EB Garamond', Georgia, serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--c-void);
+    color: var(--c-white);
+    font-family: var(--font-display);
+    overflow: hidden;
+    cursor: none;
+  }
+
+  #cursor {
+    position: fixed;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--c-violet-light);
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    mix-blend-mode: difference;
+  }
+
+  #canvas-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  #deck {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 5vw 8vw;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity;
+  }
+
+  .slide.active { opacity: 1; pointer-events: all; }
+
+  .slide .inner > * {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .slide.active .inner > *:nth-child(1) { opacity:1; transform:none; transition-delay:0.2s; }
+  .slide.active .inner > *:nth-child(2) { opacity:1; transform:none; transition-delay:0.35s; }
+  .slide.active .inner > *:nth-child(3) { opacity:1; transform:none; transition-delay:0.5s; }
+  .slide.active .inner > *:nth-child(4) { opacity:1; transform:none; transition-delay:0.65s; }
+  .slide.active .inner > *:nth-child(5) { opacity:1; transform:none; transition-delay:0.8s; }
+  .slide.active .inner > *:nth-child(6) { opacity:1; transform:none; transition-delay:0.95s; }
+  .slide.active .inner > *:nth-child(7) { opacity:1; transform:none; transition-delay:1.1s; }
+
+  /* ─── Typography ─── */
+  .tag {
+    font-family: var(--font-mono);
+    font-size: clamp(9px, 1.1vw, 11px);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--c-muted);
+    margin-bottom: clamp(1.2rem, 2.5vh, 2rem);
+  }
+
+  .display-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2.8rem, 7vw, 6rem);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    color: var(--c-white);
+    margin-bottom: clamp(0.8rem, 2vh, 1.5rem);
+  }
+
+  .display-title em { font-style: italic; color: var(--c-teal); }
+
+  .slide-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(1.8rem, 4.5vw, 3.5rem);
+    line-height: 1.1;
+    color: var(--c-white);
+    margin-bottom: clamp(0.8rem, 2vh, 1.5rem);
+  }
+
+  .slide-title em { font-style: italic; color: var(--c-violet-light); }
+  .slide-title em.teal { color: var(--c-teal); }
+  .slide-title em.rose { color: var(--c-rose); }
+  .slide-title em.amber { color: var(--c-amber); }
+
+  .body {
+    font-family: var(--font-display);
+    font-size: clamp(1rem, 1.6vw, 1.25rem);
+    line-height: 1.7;
+    color: var(--c-muted);
+    max-width: 52ch;
+    margin-bottom: clamp(0.8rem, 2vh, 1.5rem);
+  }
+
+  .accent-line {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(1.1rem, 1.8vw, 1.4rem);
+    line-height: 1.55;
+    color: var(--c-offwhite);
+    max-width: 52ch;
+    padding-left: 1.5rem;
+    border-left: 1px solid var(--c-rose);
+    margin-bottom: clamp(0.8rem, 2vh, 1.5rem);
+  }
+
+  .accent-line.teal { border-left-color: var(--c-teal); }
+  .accent-line.amber { border-left-color: var(--c-amber); }
+  .accent-line.violet { border-left-color: var(--c-violet-light); }
+
+  .quote {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(1.2rem, 2vw, 1.6rem);
+    line-height: 1.5;
+    color: var(--c-violet-light);
+    margin-bottom: 0.3rem;
+  }
+
+  .quote.teal { color: var(--c-teal); }
+  .quote.amber { color: var(--c-amber); }
+
+  .quote-autor {
+    font-family: var(--font-mono);
+    font-size: clamp(9px, 1vw, 11px);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--c-muted);
+  }
+
+  /* ─── Capacidades / lista vertical ─── */
+  .cap-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+    max-width: 70ch;
+    margin-bottom: clamp(0.8rem, 2vh, 1.5rem);
+  }
+
+  .cap-item {
+    font-size: clamp(0.95rem, 1.4vw, 1.1rem);
+    color: rgba(242,240,236,0.65);
+    line-height: 1.4;
+    padding: 0.6rem 1.1rem;
+    border: 0.5px solid var(--c-ghost);
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  .cap-item::before { content: '— '; color: var(--c-violet); }
+  .cap-item.teal::before { color: var(--c-teal); }
+  .cap-item.rose::before { color: var(--c-rose); }
+  .cap-item.amber::before { color: var(--c-amber); }
+
+  /* ─── Pregunta box ─── */
+  .pregunta {
+    font-family: var(--font-display);
+    font-size: clamp(1.1rem, 1.8vw, 1.4rem);
+    color: var(--c-white);
+    line-height: 1.55;
+    max-width: 52ch;
+    padding: 1.1rem 1.4rem;
+    border: 0.5px solid rgba(175,169,236,0.35);
+    border-radius: 2px;
+    background: rgba(83,74,183,0.07);
+  }
+
+  .pregunta.teal {
+    border-color: rgba(93,202,165,0.35);
+    background: rgba(93,202,165,0.06);
+  }
+
+  /* ─── Pregunta central (full-screen question slide) ─── */
+  .slide-q {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+
+  .pregunta-grande {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(1.8rem, 4vw, 3.2rem);
+    color: var(--c-white);
+    line-height: 1.25;
+    max-width: 22ch;
+    letter-spacing: -0.01em;
+  }
+
+  .pregunta-grande em { color: var(--c-teal); font-style: italic; }
+  .pregunta-grande em.rose { color: var(--c-rose); }
+
+  /* ─── Tags / pills ─── */
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: clamp(0.8rem, 2vh, 1.5rem);
+  }
+
+  .pill {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 4px 12px;
+    border: 0.5px solid var(--c-ghost);
+    border-radius: 99px;
+    color: var(--c-muted);
+  }
+
+  /* ─── Desfase diagram (3 lanes) ─── */
+  .desfase {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    max-width: 58ch;
+    margin-bottom: clamp(0.8rem, 2vh, 1.5rem);
+  }
+
+  .desfase-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.65rem 1rem;
+    border: 0.5px solid var(--c-ghost);
+    border-radius: 2px;
+  }
+
+  .desfase-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--c-muted);
+    min-width: 5ch;
+  }
+
+  .desfase-bar {
+    height: 3px;
+    border-radius: 99px;
+    flex: 1;
+    opacity: 0.7;
+  }
+
+  .desfase-glyph {
+    font-size: clamp(0.9rem, 1.3vw, 1rem);
+    color: var(--c-offwhite);
+    white-space: nowrap;
+  }
+
+  /* ─── Portada Clase 2 ─── */
+  #s0 {
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  #s0 .class-label {
+    font-family: var(--font-mono);
+    font-size: clamp(9px, 1vw, 11px);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--c-muted);
+    margin-bottom: 1rem;
+  }
+
+  #s0 .class-subtitle {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(1rem, 1.6vw, 1.3rem);
+    color: var(--c-muted);
+    margin-top: 1.2rem;
+    max-width: 44ch;
+    line-height: 1.55;
+  }
+
+  /* ─── Recap slide (from Clase 1) ─── */
+  .recap-badge {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(175,169,236,0.5);
+    border: 0.5px solid rgba(175,169,236,0.2);
+    padding: 3px 9px;
+    border-radius: 99px;
+    display: inline-block;
+    margin-bottom: clamp(1rem, 2vh, 1.8rem);
+  }
+
+  /* ─── Nav ─── */
+  #nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.2rem 4vw;
+    border-top: 0.5px solid var(--c-ghost);
+  }
+
+  .nav-dots { display: flex; gap: 10px; align-items: center; }
+
+  .dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--c-ghost);
+    border: none;
+    cursor: none;
+    transition: background 0.3s, transform 0.3s;
+    padding: 0;
+  }
+
+  .dot.on { background: var(--c-teal); transform: scale(1.6); }
+
+  /* section dots */
+  .dot.recap { background: rgba(175,169,236,0.4); }
+  .dot.recap.on { background: var(--c-violet-light); }
+
+  #counter {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--c-muted);
+  }
+
+  .arrow-btns { display: flex; gap: 8px; }
+
+  .arr {
+    width: 36px; height: 36px;
+    border: 0.5px solid var(--c-ghost);
+    background: transparent;
+    color: var(--c-white);
+    font-size: 15px;
+    cursor: none;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .arr:hover {
+    border-color: var(--c-teal);
+    background: rgba(93,202,165,0.08);
+  }
+
+  #hint {
+    position: fixed;
+    bottom: 5.5rem;
+    right: 4vw;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--c-muted);
+    opacity: 1;
+    transition: opacity 1.5s;
+    pointer-events: none;
+    z-index: 200;
+  }
+
+  #hint.gone { opacity: 0; }
+
+  /* ─── Section divider line ─── */
+  .section-rule {
+    width: 40px;
+    height: 0.5px;
+    background: var(--c-ghost);
+    margin-bottom: clamp(1rem, 2vh, 1.8rem);
+  }
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<canvas id="canvas-bg"></canvas>
+
+<div id="deck">
+
+  <!-- ══ PORTADA CLASE 2 ══ -->
+  <div class="slide active" id="s0">
+    <div class="inner">
+      <div class="class-label">Clase 2 · Inteligencia Vincular</div>
+      <div class="display-title"><em>La Percepción</em> como Fundamento</div>
+      <div class="section-rule"></div>
+      <div class="class-subtitle">Sentir, pensar y actuar.<br>Alfabetización interna.</div>
+    </div>
+  </div>
+
+  <!-- ══ RECAP 1: El campo vincular (de Clase 1) ══ -->
+  <div class="slide" id="sr1">
+    <div class="inner">
+      <div class="recap-badge">Clase anterior</div>
+      <div class="slide-title">El vínculo como <em>campo vivo</em></div>
+      <div class="body">El vínculo no pertenece a ninguna persona. Es un sistema dinámico donde circula información, tensión, emoción y sentido.</div>
+      <div class="tags">
+        <span class="pill">patrones</span>
+        <span class="pill">resonancias</span>
+        <span class="pill">silencios</span>
+        <span class="pill">ritmos</span>
+        <span class="pill">tensión</span>
+      </div>
+      <div class="quote">"La información está en el vínculo."</div>
+      <div class="quote-autor">— Carutti</div>
+    </div>
+  </div>
+
+  <!-- ══ RECAP 2: Inteligencia vincular (de Clase 1) ══ -->
+  <div class="slide" id="sr2">
+    <div class="inner">
+      <div class="recap-badge">Clase anterior</div>
+      <div class="slide-title">¿Qué es la <em>inteligencia vincular</em>?</div>
+      <div class="cap-grid">
+        <div class="cap-item">Leer lo que circula en un vínculo</div>
+        <div class="cap-item">Reconocer la propia posición</div>
+        <div class="cap-item">Sostener la diferencia</div>
+        <div class="cap-item">Dejarse transformar por la incomodidad</div>
+      </div>
+      <div class="quote">"No existe tal cosa como una mente individual."</div>
+      <div class="quote-autor" style="margin-bottom:1rem">— Carutti</div>
+      <div class="pregunta">¿Qué suele pasar en vos cuando el vínculo se vuelve incómodo?</div>
+    </div>
+  </div>
+
+  <!-- ══ PUENTE ══ -->
+  <div class="slide slide-q" id="sp">
+    <div class="inner" style="display:flex;flex-direction:column;align-items:center">
+      <div class="tag" style="text-align:center;margin-bottom:clamp(2rem,5vh,4rem)">Pausa · Puente</div>
+      <div class="pregunta-grande">Para vincularnos necesitamos <em>leer<br>lo que pasa adentro</em>.</div>
+    </div>
+  </div>
+
+  <!-- ══ S1: Apertura Clase 2 ══ -->
+  <div class="slide" id="s1">
+    <div class="inner">
+      <div class="tag">01 · Clase 2 — Alfabetización interna</div>
+      <div class="slide-title"><em class="teal">Leer el propio estado</em><br>antes de vincularnos</div>
+      <div class="body">Antes de entrar en un vínculo ya hay algo ocurriendo. Un estado que organiza lo que percibimos, cómo respondemos, qué podemos sostener.</div>
+      <div class="accent-line teal">Si no leemos el propio estado, el vínculo nos lee a nosotros.</div>
+    </div>
+  </div>
+
+  <!-- ══ S2: Desfase ══ -->
+  <div class="slide" id="s2">
+    <div class="inner">
+      <div class="tag">02 · Clase 2</div>
+      <div class="slide-title">El <em class="rose">desfase</em> entre sentir,<br>pensar y actuar</div>
+      <div class="body">No siempre lo que hacemos refleja lo que pensamos. Y rara vez refleja lo que sentimos. Hay una brecha que operamos sin verla.</div>
+      <div class="desfase">
+        <div class="desfase-row">
+          <span class="desfase-label">Sentir</span>
+          <div class="desfase-bar" style="background:var(--c-rose); width:100%;"></div>
+          <span class="desfase-glyph">lo primero que llega</span>
+        </div>
+        <div class="desfase-row">
+          <span class="desfase-label">Pensar</span>
+          <div class="desfase-bar" style="background:var(--c-violet-light); width:70%;"></div>
+          <span class="desfase-glyph">llega después, filtra</span>
+        </div>
+        <div class="desfase-row">
+          <span class="desfase-label">Actuar</span>
+          <div class="desfase-bar" style="background:var(--c-teal); width:45%;"></div>
+          <span class="desfase-glyph">lo que finalmente sale</span>
+        </div>
+      </div>
+      <div class="accent-line rose">Lo que hacemos en un vínculo suele venir de tres fuentes distintas, en tiempos distintos.</div>
+    </div>
+  </div>
+
+  <!-- ══ S3: El cuerpo ══ -->
+  <div class="slide" id="s3">
+    <div class="inner">
+      <div class="tag">03 · Clase 2</div>
+      <div class="slide-title">El cuerpo como<br><em class="teal">primer informante</em></div>
+      <div class="body">El cuerpo registra el vínculo antes que la mente lo nombre. Tensión, apertura, contracción, ritmo. Son datos, no ruido.</div>
+      <div class="accent-line teal">La pregunta no es si el cuerpo reacciona. Es si estamos escuchando lo que dice.</div>
+      <div class="tags">
+        <span class="pill">tensión muscular</span>
+        <span class="pill">ritmo respiratorio</span>
+        <span class="pill">apertura / cierre</span>
+        <span class="pill">temperatura</span>
+        <span class="pill">presencia / ausencia</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S4: Incomodidad y ambivalencia ══ -->
+  <div class="slide" id="s4">
+    <div class="inner">
+      <div class="tag">04 · Clase 2</div>
+      <div class="slide-title"><em class="rose">Incomodidad</em><br>y ambivalencia</div>
+      <div class="body">La incomodidad no es una señal de que algo está mal. Es información sobre el estado del vínculo — y sobre dónde estamos parados.</div>
+      <div class="accent-line rose">La ambivalencia no es debilidad: es la experiencia de sostener dos verdades al mismo tiempo.</div>
+      <div class="pregunta">¿Qué hacés habitualmente cuando aparece la incomodidad en un vínculo?</div>
+    </div>
+  </div>
+
+  <!-- ══ S5: Coherencia como proceso ══ -->
+  <div class="slide" id="s5">
+    <div class="inner">
+      <div class="tag">05 · Clase 2 — Cierre</div>
+      <div class="slide-title">La <em class="amber">coherencia</em><br>como proceso</div>
+      <div class="body">No se trata de lograr un estado sin contradicción. Se trata de reducir la distancia entre lo que sentís, lo que pensás y lo que hacés — en movimiento.</div>
+      <div class="cap-grid">
+        <div class="cap-item teal">No es un ideal que se alcanza</div>
+        <div class="cap-item teal">Es una práctica que se sostiene</div>
+        <div class="cap-item teal">Requiere leer el propio estado en tiempo real</div>
+        <div class="cap-item teal">Empieza antes de abrir la boca</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S6: Pregunta de cierre ══ -->
+  <div class="slide slide-q" id="s6">
+    <div class="inner" style="display:flex;flex-direction:column;align-items:center">
+      <div class="tag" style="text-align:center;margin-bottom:clamp(2rem,5vh,4rem)">Pregunta de cierre</div>
+      <div class="pregunta-grande">¿Cuándo fue la última vez que sentiste, pensaste y actuaste <em>en la misma dirección</em>?</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Nav -->
+<div id="nav">
+  <div class="nav-dots" id="navDots"></div>
+  <span id="counter">1 / 9</span>
+  <div class="arrow-btns">
+    <button class="arr" id="prev">&#8592;</button>
+    <button class="arr" id="next">&#8594;</button>
+  </div>
+</div>
+
+<div id="hint">Cursores ← →</div>
+
+<script>
+// ─── Cursor ───
+const curEl = document.getElementById('cursor');
+document.addEventListener('mousemove', e => {
+  curEl.style.left = e.clientX + 'px';
+  curEl.style.top  = e.clientY + 'px';
+});
+
+// ─── Background veins ───
+const canvas = document.getElementById('canvas-bg');
+const ctx    = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+class Vein {
+  constructor(opts = {}) {
+    this.x      = opts.x ?? Math.random() * W;
+    this.y      = opts.y ?? Math.random() * H;
+    this.angle  = opts.angle ?? Math.random() * Math.PI * 2;
+    this.speed  = 0.35 + Math.random() * 0.55;
+    this.noiseOff   = Math.random() * 1000;
+    this.points     = [{x: this.x, y: this.y}];
+    this.hue        = Math.random() < 0.5 ? 'teal' : Math.random() < 0.5 ? 'violet' : 'rose';
+    this.alpha      = 0.05 + Math.random() * 0.09;
+    this.width      = 0.4 + Math.random() * 0.7;
+    this.jitter     = 0.5 + Math.random() * 1.1;
+    this.turnRate   = (Math.random() - 0.5) * 0.07;
+    this.segments   = 0;
+    this.maxSegments = 90 + Math.floor(Math.random() * 110);
+  }
+
+  step(t) {
+    if (this.segments >= this.maxSegments) return;
+    const noise =
+      Math.sin(t * 0.0007 + this.noiseOff) * 0.04 +
+      Math.sin(t * 0.003  + this.noiseOff * 1.3) * 0.022 +
+      Math.sin(t * 0.011  + this.noiseOff * 0.7) * 0.014;
+    this.angle += this.turnRate + noise + (Math.random() - 0.5) * 0.03 * this.jitter;
+    this.x += Math.cos(this.angle) * this.speed;
+    this.y += Math.sin(this.angle) * this.speed;
+    this.points.push({x: this.x, y: this.y});
+    this.segments++;
+  }
+
+  draw() {
+    if (this.points.length < 2) return;
+    const colors = { teal: '#5DCAA5', violet: '#7F77DD', rose: '#D4537E' };
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.strokeStyle = colors[this.hue];
+    ctx.lineWidth   = this.width;
+    ctx.lineCap     = 'round';
+    ctx.lineJoin    = 'round';
+    ctx.beginPath();
+    ctx.moveTo(this.points[0].x, this.points[0].y);
+    for (let i = 1; i < this.points.length; i++) {
+      ctx.lineTo(
+        this.points[i].x + (Math.random() - 0.5) * 0.35,
+        this.points[i].y + (Math.random() - 0.5) * 0.35
+      );
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  done() {
+    const p = this.points[this.points.length - 1];
+    return this.segments >= this.maxSegments ||
+      p.x < -60 || p.x > W + 60 || p.y < -60 || p.y > H + 60;
+  }
+}
+
+const veins = [];
+const sparks = [];
+const MAX_VEINS  = 12;
+const MAX_SPARKS = 30;
+
+for (let i = 0; i < MAX_VEINS; i++)  veins.push(new Vein());
+for (let i = 0; i < MAX_SPARKS; i++) {
+  const s = makeSpark();
+  s.life = Math.floor(Math.random() * s.maxLife);
+  sparks.push(s);
+}
+
+function makeSpark() {
+  return {
+    x: Math.random() * W,
+    y: Math.random() * H,
+    r: 0.5 + Math.random() * 1.3,
+    alpha: 0,
+    targetAlpha: 0.08 + Math.random() * 0.2,
+    life: 0,
+    maxLife: 100 + Math.random() * 200,
+    col: ['#AFA9EC','#5DCAA5','#D4537E'][Math.floor(Math.random()*3)],
+  };
+}
+
+let mouseX = W/2, mouseY = H/2;
+let frameCount = 0;
+document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+
+function animate(t) {
+  requestAnimationFrame(animate);
+  frameCount++;
+
+  ctx.fillStyle = 'rgba(8,8,16,0.022)';
+  ctx.fillRect(0, 0, W, H);
+
+  for (let i = veins.length - 1; i >= 0; i--) {
+    veins[i].step(t);
+    veins[i].draw();
+    if (veins[i].done()) veins.splice(i, 1);
+  }
+
+  if (frameCount % 24 === 0 && veins.length < MAX_VEINS) {
+    const nearMouse = Math.random() < 0.3;
+    veins.push(new Vein({
+      x: nearMouse ? mouseX + (Math.random()-0.5)*60 : Math.random()*W,
+      y: nearMouse ? mouseY + (Math.random()-0.5)*60 : Math.random()*H,
+    }));
+  }
+
+  for (let i = sparks.length - 1; i >= 0; i--) {
+    const s = sparks[i];
+    s.life++;
+    const p = s.life / s.maxLife;
+    if (p < 0.2)       s.alpha = (p/0.2) * s.targetAlpha;
+    else if (p > 0.7)  s.alpha = ((1-p)/0.3) * s.targetAlpha;
+    else               s.alpha = s.targetAlpha;
+    ctx.save();
+    ctx.globalAlpha = s.alpha;
+    ctx.fillStyle   = s.col;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+    if (s.life >= s.maxLife) { Object.assign(sparks[i], makeSpark()); }
+  }
+
+  // mouse ring
+  if (frameCount % 3 === 0) {
+    const pulse = (Math.sin(t*0.001) + 1) * 0.5;
+    ctx.save();
+    ctx.globalAlpha = 0.012 * pulse;
+    ctx.strokeStyle = '#5DCAA5';
+    ctx.lineWidth   = 0.5;
+    ctx.beginPath();
+    ctx.arc(mouseX, mouseY, 40 + pulse*20, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+animate(0);
+
+// ─── Slides ───
+const slides = Array.from(document.querySelectorAll('.slide'));
+const total  = slides.length;
+let current  = 0;
+
+const dotsEl  = document.getElementById('navDots');
+const counterEl = document.getElementById('counter');
+
+// dot class by slide id prefix
+const recapIds = ['sr1','sr2'];
+const dots = slides.map((sl, i) => {
+  const d = document.createElement('button');
+  d.className = 'dot' + (i === 0 ? ' on' : '') +
+    (recapIds.includes(sl.id) ? ' recap' : '');
+  d.setAttribute('aria-label', 'Slide ' + (i+1));
+  d.addEventListener('click', () => goTo(i));
+  dotsEl.appendChild(d);
+  return d;
+});
+
+function goTo(n) {
+  slides[current].classList.remove('active');
+  dots[current].classList.remove('on');
+  current = (n + total) % total;
+  slides[current].classList.add('active');
+  dots[current].classList.add('on');
+  counterEl.textContent = (current+1) + ' / ' + total;
+
+  // burst veins on transition
+  for (let i = 0; i < 3; i++) {
+    veins.push(new Vein({
+      x: Math.random()*W, y: Math.random()*H,
+      angle: Math.random()*Math.PI*2,
+    }));
+  }
+}
+
+document.getElementById('prev').addEventListener('click', () => goTo(current-1));
+document.getElementById('next').addEventListener('click', () => goTo(current+1));
+document.addEventListener('keydown', e => {
+  if (e.key==='ArrowRight'||e.key==='ArrowDown') goTo(current+1);
+  if (e.key==='ArrowLeft' ||e.key==='ArrowUp')   goTo(current-1);
+});
+
+setTimeout(() => document.getElementById('hint').classList.add('gone'), 4000);
+</script>
+</body>
+</html>
