@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedagogía Vincular: Educar más allá del mapa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg: #f4f1ea;
+            --color-text: #1a1a1a;
+            --color-accent: #6b705c;
+            --color-highlight: #b7b7a4;
+            --font-header: 'Oswald', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            font-family: var(--font-body);
+            overflow: hidden;
+        }
+
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            transition: transform 0.8s cubic-bezier(0.85, 0, 0.15, 1);
+        }
+
+        section {
+            min-width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 5% 10%;
+            position: relative;
+            text-align: center;
+        }
+
+        .slide-bg {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            opacity: 0.15;
+            background-size: cover;
+            background-position: center;
+            filter: sepia(20%) contrast(90%);
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, rgba(244,241,234,0) 0%, rgba(244,241,234,0.8) 100%);
+            z-index: -1;
+        }
+
+        h1 {
+            font-family: var(--font-header);
+            font-size: clamp(2.5rem, 5vw, 4.5rem);
+            text-transform: uppercase;
+            line-height: 1;
+            color: var(--color-accent);
+            margin-bottom: 1.5rem;
+        }
+
+        .main-paragraph {
+            font-size: clamp(1.1rem, 1.8vw, 1.5rem);
+            max-width: 850px;
+            line-height: 1.6;
+            font-weight: 300;
+            margin-bottom: 2rem;
+        }
+
+        strong { font-weight: 600; color: #000; }
+
+        .featured-subtitle {
+            font-family: var(--font-header);
+            font-size: clamp(1.4rem, 2.5vw, 2rem);
+            text-transform: uppercase;
+            color: var(--color-text);
+            border-top: 1px solid var(--color-highlight);
+            padding-top: 1.5rem;
+            margin-bottom: 1.5rem;
+            letter-spacing: 1px;
+        }
+
+        .final-phrase {
+            font-size: clamp(1.2rem, 2.2vw, 1.8rem);
+            font-style: italic;
+            color: var(--color-accent);
+            font-weight: 400;
+        }
+
+        /* Listas slides B */
+        .content-list {
+            list-style: none;
+            max-width: 850px;
+            width: 100%;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+        .content-list li {
+            font-size: clamp(0.85rem, 1.3vw, 1.1rem);
+            font-weight: 300;
+            line-height: 1.5;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(183,183,164,0.3);
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+        .content-list li:last-child { border-bottom: none; }
+        .list-label {
+            font-family: var(--font-header);
+            font-size: clamp(0.8rem, 1.1vw, 1rem);
+            color: var(--color-accent);
+            text-transform: uppercase;
+            min-width: 130px;
+            padding-top: 0.1rem;
+            letter-spacing: 0.5px;
+        }
+        .list-desc { flex: 1; color: var(--color-text); }
+
+        /* ============================================
+           SLIDE C — Eneagrama Layout Izq / Der
+           ============================================ */
+        .enea-slide {
+            padding: 0 !important;
+            overflow: hidden;
+            flex-direction: row !important;
+            align-items: stretch !important;
+            justify-content: flex-start !important;
+            text-align: left !important;
+        }
+
+        /* Columna izquierda: figura */
+        .enea-left {
+            flex: 0 0 52%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .enea-left h1 {
+            position: absolute;
+            top: 5%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: clamp(1.2rem, 2vw, 2rem);
+            margin-bottom: 0;
+            white-space: nowrap;
+            z-index: 10;
+            text-align: center;
+        }
+
+        .enea-canvas {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .enea-svg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Punto del círculo (solo número) */
+        .enea-dot {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .enea-dot:hover { transform: translate(-50%, -50%) scale(1.25); }
+
+        .dot-num {
+            width: clamp(28px, 3.2vw, 44px);
+            height: clamp(28px, 3.2vw, 44px);
+            border-radius: 50%;
+            background: rgba(244,241,234,0.9);
+            border: 1.5px solid rgba(107,112,92,0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-header);
+            font-size: clamp(0.85rem, 1.4vw, 1.5rem);
+            color: var(--color-accent);
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .enea-dot.active .dot-num,
+        .enea-dot:hover .dot-num {
+            background: var(--color-accent);
+            color: #f4f1ea;
+            border-color: var(--color-accent);
+        }
+
+        /* Centro del Eneagrama */
+        .enea-center {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            z-index: 6;
+            pointer-events: none;
+        }
+        .enea-center-circle {
+            width: clamp(48px, 5.5vw, 72px);
+            height: clamp(48px, 5.5vw, 72px);
+            border-radius: 50%;
+            border: 1.5px solid rgba(107,112,92,0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(244,241,234,0.75);
+        }
+        .enea-center-text {
+            font-family: var(--font-header);
+            font-size: clamp(0.45rem, 0.7vw, 0.72rem);
+            color: var(--color-accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            line-height: 1.2;
+            text-align: center;
+        }
+
+        /* Columna derecha: listado */
+        .enea-right {
+            flex: 0 0 48%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 4% 5% 4% 2%;
+            border-left: 1px solid rgba(183,183,164,0.3);
+            overflow: hidden;
+        }
+
+        .enea-right-title {
+            font-family: var(--font-header);
+            font-size: clamp(1rem, 1.6vw, 1.5rem);
+            text-transform: uppercase;
+            color: var(--color-accent);
+            letter-spacing: 1px;
+            margin-bottom: clamp(8px, 1.2vh, 16px);
+            padding-bottom: clamp(6px, 0.8vh, 10px);
+            border-bottom: 1px solid rgba(183,183,164,0.4);
+        }
+
+        .enea-list {
+            list-style: none;
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .enea-list li {
+            display: flex;
+            align-items: baseline;
+            gap: clamp(6px, 0.8vw, 12px);
+            padding: clamp(3px, 0.5vh, 6px) 0;
+            border-bottom: 1px solid rgba(183,183,164,0.2);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .enea-list li:last-child { border-bottom: none; }
+        .enea-list li:hover .list-n { color: var(--color-text); }
+        .enea-list li:hover .list-name { color: var(--color-text); }
+
+        .list-n {
+            font-family: var(--font-header);
+            font-size: clamp(1rem, 1.5vw, 1.6rem);
+            color: var(--color-accent);
+            min-width: clamp(18px, 2vw, 28px);
+            line-height: 1;
+            opacity: 0.7;
+            transition: color 0.15s;
+        }
+
+        .list-content { flex: 1; }
+
+        .list-name {
+            font-family: var(--font-header);
+            font-size: clamp(0.65rem, 1vw, 1rem);
+            text-transform: uppercase;
+            color: var(--color-accent);
+            letter-spacing: 0.4px;
+            line-height: 1.1;
+            transition: color 0.15s;
+        }
+
+        .list-desc {
+            font-size: clamp(0.55rem, 0.78vw, 0.8rem);
+            font-weight: 300;
+            color: var(--color-text);
+            line-height: 1.3;
+            opacity: 0.75;
+        }
+
+        .enea-right .final-phrase {
+            font-size: clamp(0.65rem, 0.9vw, 0.88rem);
+            font-style: italic;
+            color: var(--color-accent);
+            font-weight: 400;
+            margin-top: clamp(6px, 1vh, 12px);
+            padding-top: clamp(6px, 0.8vh, 10px);
+            border-top: 1px solid rgba(183,183,164,0.3);
+            line-height: 1.4;
+        }
+
+        /* Footer */
+        .footer {
+            position: fixed;
+            bottom: 30px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 50px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.5;
+            z-index: 50;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 25px;
+            right: 50px;
+            z-index: 100;
+            display: flex;
+            gap: 15px;
+        }
+		
+		.enea {    margin: 137px 0px 0px 150px;
+    mix-blend-mode: multiply;}
+
+        button {
+            background: none;
+            border: 1px solid rgba(0,0,0,0.2);
+            padding: 8px 15px;
+            cursor: pointer;
+            font-family: var(--font-header);
+            transition: 0.3s;
+        }
+
+        button:hover { background: var(--color-accent); color: white; }
+    </style>
+</head>
+<body>
+
+<div class="presentation" id="slider">
+
+    <!-- SLIDE 1 -->
+    <section>
+        <div class="slide-bg" style="background-image: url('https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?auto=format&fit=crop&q=80')"></div>
+        <h1>Pedagogía Vincular:<br/> Educar más allá del mapa</h1>
+        <p class="main-paragraph">Explorando las fronteras entre la <strong>educación</strong>,<br/> la <strong>sensibilidad</strong> y la inteligencia vincular.</p>
+        <div class="featured-subtitle">German Doin</div>
+        <p class="final-phrase">Un viaje hacia la inteligencia que emerge entre nosotros.</p>
+    </section>
+
+    <!-- SLIDE 2 -->
+    <section>
+        <div class="slide-bg" style="background-image: url('https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&q=80')"></div>
+        <h1>1. La unidad de aprendizaje es el vínculo</h1>
+        <p class="main-paragraph">Nadie aprende profundamente en un contexto de <strong>desconexión emocional</strong>, miedo o indiferencia. Antes de enseñar contenidos, hay que construir condiciones de <strong>confianza, presencia y apertura</strong>.</p>
+        <div class="featured-subtitle">La ilusión de ser centro</div>
+        <p class="final-phrase">El aprendizaje ocurre en relación con otros, el entorno, el cuerpo y el sentido.</p>
+    </section>
+
+    <!-- SLIDE 3 -->
+    <section>
+        <div class="slide-bg" style="background-image: url('https://images.unsplash.com/photo-1490730141103-6cac27aaab94?auto=format&fit=crop&q=80')"></div>
+        <h1>2. Aprender es darse cuenta</h1>
+        <p class="main-paragraph">La verdadera educación no consiste en sumar conocimientos o habilidades, sino en <strong>modificar percepciones</strong>, ampliar la conciencia y <strong>revisar supuestos</strong>. Cuando el aprendizaje transforma a la persona, el conocimiento se vuelve significativo.</p>
+        <div class="featured-subtitle">Inteligencia Tecnológica vs. Vincular</div>
+        <p class="final-phrase">Pasar de poseer objetos, controlar consecuencias y manipular la realidad;<br/>a observar patrones, sentir relaciones e identificar la novedad.</p>
+    </section>
+
+    <!-- SLIDE 4 -->
+    <section>
+        <div class="slide-bg" style="background-image: url('https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80')"></div>
+        <h1>3. Toda dificultad trae información</h1>
+        <p class="main-paragraph">Conflictos, resistencias o apatía no son problemas a corregir, sino <strong>mensajes del sistema</strong>. Una pedagogía vincular lee síntomas grupales como <strong>información valiosa</strong> para intervenir con inteligencia.</p>
+        <div class="featured-subtitle">Magnetismo y Excitación</div>
+        <p class="final-phrase">Lo que nos atrae trae información: la importancia de sostener y no reaccionar.</p>
+    </section>
+
+    <!-- SLIDE 5 -->
+    <section>
+        <div class="slide-bg" style="background-image: url('https://images.unsplash.com/photo-1524486361537-8ad15938e1a3?auto=format&fit=crop&q=80')"></div>
+        <h1>4. El aula es un organismo vivo</h1>
+        <p class="main-paragraph">Un grupo no es la suma de individuos, sino una <strong>trama dinámica</strong> con climas, tensiones e inteligencias emergentes. El docente aprende a <strong>leer el campo</strong>, no solo conductas individuales.</p>
+        <div class="featured-subtitle">Educar es crear condiciones de encuentro</div>
+        <p class="final-phrase">No transmitir respuestas, sino facilitar procesos donde aparezca la inteligencia compartida.</p>
+    </section>
+
+    <!-- SLIDE 6 -->
+    <section>
+        <div class="slide-bg" style="background-image: url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&q=80')"></div>
+        <h1>5. La diversidad potencia la inteligencia</h1>
+        <p class="main-paragraph">Las diferencias de personalidad o sensibilidad enriquecen el aprendizaje si abrimos <strong>espacio al conflicto</strong>. La homogeneidad simplifica, pero la <strong>diversidad bien acompañada</strong> genera pensamiento complejo.</p>
+        <div class="featured-subtitle">Somos Sistemas Expandiéndose</div>
+        <p class="final-phrase">"Pensar distinto abre nuevas posibilidades, pensar igual abona a la endogamia vincular".</p>
+    </section>
+
+    <!-- SLIDE 7 -->
+    <section>
+        <div class="slide-bg" style="background-image: url('https://images.unsplash.com/photo-1547153760-18fc86324498?auto=format&fit=crop&q=80')"></div>
+        <h1>6. El cuerpo aprende sintiendo</h1>
+        <p class="main-paragraph">El aprendizaje no ocurre solo en la mente racional. El cuerpo <strong>registra, bloquea y comprende</strong>. Movimiento y contacto habilitan una nueva <strong>percepción</strong> que la palabra no puede enunciar.</p>
+        <div class="featured-subtitle">Del control a la presencia disponible</div>
+        <p class="final-phrase">"Sentir es la forma que tiene el cuerpo es conocer."</p>
+    </section>
+
+    <!-- SLIDE A — El Eneagrama como Mapa -->
+    <section>
+        <div class="slide-bg" style="background-image: url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80')"></div>
+        <div class="overlay"></div>
+        <h1>El Eneagrama:<br/>Un lenguaje para la Presencia</h1>
+        <p class="main-paragraph">No utilizamos el Eneagrama para <strong>etiquetar personas</strong>, sino para desentrañar los mapas automáticos con los que operamos. En la Pedagogía Vincular, el lenguaje nos permite nombrar patrones y observar nuestros <strong>puntos ciegos</strong>: ¿desde dónde acompaño al otro?</p>
+        <div class="featured-subtitle">Del Automatismo a la Disponibilidad</div>
+    </section>
+
+    <!-- SLIDE B — Tres Centros -->
+    <section>
+        <div class="slide-bg" style="background-image: url('https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&q=80')"></div>
+        <div class="overlay"></div>
+        <h1>Centros de Percepción y Acción</h1>
+        <ul class="content-list">
+            <li>
+                <span class="list-label">Instintivo<br/>(Cuerpo)</span>
+                <span class="list-desc">Aprende a través del <strong>hacer</strong>, el límite y la experiencia física. Su foco es la <strong>autonomía</strong>.</span>
+            </li>
+            <li>
+                <span class="list-label">Emocional<br/>(Corazón)</span>
+                <span class="list-desc">Aprende a través del <strong>vínculo</strong>, la imagen y el sentir. Su foco es la <strong>conexión</strong>.</span>
+            </li>
+            <li>
+                <span class="list-label">Mental<br/>(Mente)</span>
+                <span class="list-desc">Aprende a través del <strong>análisis</strong>, la estructura y la previsión. Su foco es la <strong>seguridad</strong>.</span>
+            </li>
+        </ul>
+        <div class="featured-subtitle">La coherencia de la presencia</div>
+        <p class="final-phrase">"Acompañar integralmente es sintonizar con los tres centros del que aprende."</p>
+    </section>
+
+    <!-- SLIDE C — 9 Eneatipos: Figura izquierda + Lista derecha -->
+    <section class="enea-slide">
+        <div class="slide-bg" style="background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80')"></div>
+        <div class="overlay"></div>
+
+        <!-- COLUMNA IZQUIERDA: figura -->
+        <div class="enea-left">
+            <h1>9 Lentes,<br/>9 Formas de Aprender</h1>
+            <div class="enea-canvas" id="eneaCanvas">
+			<img src="enea.png" alt="Eneagrama" class="enea">
+
+            </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: listado -->
+        <div class="enea-right">
+            <div class="enea-right-title">Cómo percibimos, cómo aprendemos</div>
+            <ul class="enea-list" id="eneaList"></ul>
+            <p class="final-phrase">"Aprender es dejar de confirmar nuestro sesgo<br/>para empezar a ver la realidad."</p>
+        </div>
+    </section>
+
+    <!-- SLIDE 8 -->
+    <section>
+        <div class="slide-bg" style="background-image: url('https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&q=80')"></div>
+        <h1>7. La pregunta incómoda</h1>
+        <p class="main-paragraph">Las respuestas cerradas tranquilizan; las <strong>preguntas vivas</strong> movilizan inteligencia. Esta pedagogía prioriza la <strong>investigación y la curiosidad</strong> por encima de la acumulación de certezas.</p>
+        <div class="featured-subtitle">Sostener la incertidumbre</div>
+        <p class="final-phrase">"Hay aprendizajes que solo emergen dejando de intentar aplicar los mapas previos."</p>
+    </section>
+
+    <!-- SLIDE 9 -->
+    <section>
+        <div class="slide-bg" style="background-image: url('https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80')"></div>
+        <h1>8. Verdades contradictorias</h1>
+        <p class="main-paragraph">La contradicción suele señalar una <strong>complejidad mayor</strong>: necesidades o dinámicas invisibles aún no comprendidas. La tarea no es elegir bandos, sino <strong>integrar ambas miradas</strong> en una verdad más amplia.</p>
+        <div class="featured-subtitle">La información invisible</div>
+        <p class="final-phrase">El vínculo revela lo que la mente sola no puede ver.</p>
+    </section>
+
+    <!-- SLIDE 10 -->
+    <section>
+        <div class="slide-bg" style="background-image: url('https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&q=80')"></div>
+        <h1>9. Patrones de Resonancia</h1>
+        <p class="main-paragraph">Tenemos que cultivar la <strong>mente del artista</strong>, aquella que se sensibiliza con patrones que siempre han estado aquí. Crear implica poner en palabras informaciones que hablan en <strong>múltiples niveles</strong>.</p>
+        <div class="featured-subtitle">Habitar la Ambigüedad</div>
+        <p class="final-phrase">Sostener la tensión para que una nueva forma emerja.</p>
+    </section>
+
+    <!-- SLIDE 11 -->
+    <section>
+        <div class="slide-bg" style="background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80')"></div>
+        <h1>10. Educar para la complejidad</h1>
+        <p class="main-paragraph">El mundo actual exige navegar <strong>incertidumbre</strong> y aceptación radical del otro. La escuela debe entrenar la <strong>sensibilidad vincular</strong> y la capacidad de crear con otros frente al cambio constante.</p>
+        <div class="featured-subtitle">Transformación constante</div>
+        <p class="final-phrase">"Aprender a dejar de ser cada vez que la realidad incómoda me invite a transformarme."</p>
+    </section>
+
+    <!-- SLIDE 12 — Cierre -->
+    <section>
+        <div class="slide-bg" style="background-image: url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80')"></div>
+        <h1>¿Qué tipo de <strong>vínculo</strong> hace posible<br/>que la <strong>vida se abra paso</strong>?</h1>
+        <p class="main-paragraph">Educar vincularmente implica aceptar que aprender no sucede solo por contenidos, sino por la calidad de presencia que creamos entre nosotros. Allí donde dejamos de actuar viejos papeles y nos disponemos a encontrarnos de verdad, aparece una inteligencia más viva, creativa y transformadora.</p>
+        <div class="featured-subtitle">La pregunta de fondo</div>
+        <p class="final-phrase">¿Queremos vincularnos, o queremos seguir repitiendo lo que creemos que somos?</p>
+    </section>
+
+</div>
+
+<div class="footer">
+    <div>Pedagogía Vincular — German Doin</div>
+    <div id="slideNumber">1 / 15</div>
+</div>
+
+<div class="controls">
+    <button onclick="moveSlide(-1)">←</button>
+    <button onclick="moveSlide(1)">→</button>
+</div>
+
+<script>
+    /* ── Slider principal ── */
+    let currentSlide = 0;
+    const totalSlides = 15;
+    const slider = document.getElementById('slider');
+    const slideNumberText = document.getElementById('slideNumber');
+
+    function moveSlide(direction) {
+        currentSlide = Math.max(0, Math.min(totalSlides - 1, currentSlide + direction));
+        slider.style.transform = `translateX(-${currentSlide * 100}vw)`;
+        slideNumberText.innerText = `${currentSlide + 1} / ${totalSlides}`;
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') moveSlide(1);
+        if (e.key === 'ArrowLeft') moveSlide(-1);
+    });
+
+    /* ── Eneagrama visual ── */
+    const eneatipos = [
+        { n: 1, name: 'El Perfeccionista', desc: 'Percibe errores y lo que "debe ser". Aprende con estructura y mejora constante.' },
+        { n: 2, name: 'El Ayudador',       desc: 'Percibe las necesidades ajenas. Aprende sintiéndose valorado y en conexión.' },
+        { n: 3, name: 'El Realizador',     desc: 'Percibe metas y resultados. Aprende a través de la eficacia y el logro.' },
+        { n: 4, name: 'El Sensible', desc: 'Percibe lo que falta. Aprende desde la expresión propia y la autenticidad.' },
+        { n: 5, name: 'El Investigador',   desc: 'Percibe datos y límites. Aprende con observación distante y comprensión conceptual.' },
+        { n: 6, name: 'El Leal',           desc: 'Percibe riesgos y autoridad. Aprende con marcos de seguridad y confianza clara.' },
+        { n: 7, name: 'El Entusiasta',     desc: 'Percibe opciones. Aprende con juego, interconexión de ideas y estímulo.' },
+        { n: 8, name: 'El Desafiador',     desc: 'Percibe el poder y la justicia. Aprende con impacto y confrontación honesta.' },
+        { n: 9, name: 'El Pacificador',    desc: 'Percibe conflicto y armonía. Aprende con integración, calma y respeto por sus tiempos.' },
+    ];
+
+    /* Generar lista derecha */
+    const eneaList = document.getElementById('eneaList');
+    eneatipos.forEach(({ n, name, desc }) => {
+        const li = document.createElement('li');
+        li.dataset.n = n;
+        li.innerHTML = `<span class="list-n">${n}</span>
+            <span class="list-content">
+                <span class="list-name">${name}</span><br/>
+                <span class="list-desc">${desc}</span>
+            </span>`;
+        eneaList.appendChild(li);
+    });
+
+    function setActive(n) {
+        document.querySelectorAll('.enea-dot').forEach(d => d.classList.toggle('active', +d.dataset.n === n));
+        document.querySelectorAll('#eneaList li').forEach(li => {
+            const on = +li.dataset.n === n;
+            li.style.opacity = n ? (on ? '1' : '0.4') : '1';
+        });
+    }
+
+    function buildEnea() {
+        const canvas = document.getElementById('eneaCanvas');
+        const svg    = document.getElementById('eneaSvg');
+        const center = document.getElementById('eneaCenter');
+
+        const W = canvas.offsetWidth;
+        const H = canvas.offsetHeight;
+
+        /* Reservar espacio para título arriba (~18%) y nada abajo */
+        const topMargin = H * 0.18;
+        const availH    = H - topMargin - H * 0.05;
+        const cx = W / 2;
+        const cy = topMargin + availH / 2;
+        const R  = Math.min(W * 0.42, availH * 0.42);
+
+        /* SVG */
+        svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+        svg.setAttribute('width', W);
+        svg.setAttribute('height', H);
+
+        const circle = document.getElementById('outerCircle');
+        circle.setAttribute('cx', cx); circle.setAttribute('cy', cy); circle.setAttribute('r', R);
+
+        function angle(n) { return ((n - 1) * 40 - 90) * Math.PI / 180; }
+        function pos(n)   { const a = angle(n); return { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) }; }
+
+        /* Triángulo 3-6-9 */
+        const [t3, t6, t9] = [pos(3), pos(6), pos(9)];
+        document.getElementById('triangle').setAttribute('points',
+            `${t3.x},${t3.y} ${t6.x},${t6.y} ${t9.x},${t9.y}`);
+
+        /* Hexágono 1→4→2→8→5→7→1 */
+        const hex = [1,4,2,8,5,7,1].map(n => pos(n));
+        document.getElementById('hexPath').setAttribute('d',
+            hex.map((p,i) => (i===0 ? `M${p.x},${p.y}` : `L${p.x},${p.y}`)).join(' ') + ' Z');
+
+        /* Centro */
+        center.style.left = cx + 'px';
+        center.style.top  = cy + 'px';
+
+        /* Puntos */
+        canvas.querySelectorAll('.enea-dot').forEach(el => el.remove());
+        eneatipos.forEach(({ n }) => {
+            const p   = pos(n);
+            const dot = document.createElement('div');
+            dot.className   = 'enea-dot';
+            dot.dataset.n   = n;
+            dot.style.left  = p.x + 'px';
+            dot.style.top   = p.y + 'px';
+            dot.innerHTML   = `<div class="dot-num">${n}</div>`;
+            dot.addEventListener('mouseenter', () => setActive(n));
+            dot.addEventListener('mouseleave', () => setActive(0));
+            canvas.appendChild(dot);
+        });
+
+        /* Hover en lista → resalta punto */
+        document.querySelectorAll('#eneaList li').forEach(li => {
+            li.addEventListener('mouseenter', () => setActive(+li.dataset.n));
+            li.addEventListener('mouseleave', () => setActive(0));
+        });
+    }
+
+    window.addEventListener('load', buildEnea);
+    window.addEventListener('resize', buildEnea);
+</script>
+</body>
+</html>

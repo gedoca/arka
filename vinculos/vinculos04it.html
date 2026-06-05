@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intelligenza Vincolare · Classe 4</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Space+Mono:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --c-void:         #080810;
+    --c-violet:       #534AB7;
+    --c-violet-light: #AFA9EC;
+    --c-rose:         #D4537E;
+    --c-teal:         #5DCAA5;
+    --c-amber:        #EF9F27;
+    --c-sand:         #C9B49A;
+    --c-white:        #F2F0EC;
+    --c-offwhite:     #E8E5DF;
+    --c-muted:        rgba(242,240,236,0.45);
+    --c-ghost:        rgba(242,240,236,0.18);
+    --font-display:   'EB Garamond', Georgia, serif;
+    --font-mono:      'Space Mono', monospace;
+  }
+
+  html, body {
+    width:100%; height:100%;
+    background: var(--c-void);
+    color: var(--c-white);
+    font-family: var(--font-display);
+    overflow: hidden;
+    cursor: none;
+  }
+
+  #cursor {
+    position:fixed; width:10px; height:10px;
+    border-radius:50%; background: var(--c-sand);
+    pointer-events:none; z-index:9999;
+    transform:translate(-50%,-50%);
+    mix-blend-mode:difference;
+  }
+
+  #canvas-bg { position:fixed; inset:0; z-index:0; pointer-events:none; }
+  #deck      { position:fixed; inset:0; z-index:1; }
+
+  .slide {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; justify-content:center;
+    padding:5vw 8vw;
+    opacity:0; pointer-events:none;
+    transition:opacity 0.9s cubic-bezier(0.16,1,0.3,1);
+    will-change:opacity;
+  }
+  .slide.active { opacity:1; pointer-events:all; }
+
+  .slide .inner > * {
+    opacity:0; transform:translateY(18px);
+    transition:opacity 0.7s ease, transform 0.7s ease;
+  }
+  .slide.active .inner > *:nth-child(1){opacity:1;transform:none;transition-delay:.2s}
+  .slide.active .inner > *:nth-child(2){opacity:1;transform:none;transition-delay:.35s}
+  .slide.active .inner > *:nth-child(3){opacity:1;transform:none;transition-delay:.5s}
+  .slide.active .inner > *:nth-child(4){opacity:1;transform:none;transition-delay:.65s}
+  .slide.active .inner > *:nth-child(5){opacity:1;transform:none;transition-delay:.8s}
+  .slide.active .inner > *:nth-child(6){opacity:1;transform:none;transition-delay:.95s}
+  .slide.active .inner > *:nth-child(7){opacity:1;transform:none;transition-delay:1.1s}
+
+  .tag {
+    font-family:var(--font-mono);
+    font-size:clamp(9px,1.1vw,11px);
+    letter-spacing:.18em; text-transform:uppercase;
+    color:var(--c-muted);
+    margin-bottom:clamp(1.2rem,2.5vh,2rem);
+  }
+
+  .display-title {
+    font-family:var(--font-display); font-weight:400;
+    font-size:clamp(2.4rem,6vw,5rem);
+    line-height:1.04; letter-spacing:-0.02em;
+    color:var(--c-white);
+    margin-bottom:clamp(0.8rem,2vh,1.5rem);
+  }
+  .display-title em { font-style:italic; color:var(--c-sand); }
+
+  .slide-title {
+    font-family:var(--font-display); font-weight:400;
+    font-size:clamp(1.8rem,4.5vw,3.5rem);
+    line-height:1.1; color:var(--c-white);
+    margin-bottom:clamp(0.8rem,2vh,1.5rem);
+  }
+  .slide-title em          { font-style:italic; color:var(--c-sand); }
+  .slide-title em.rose     { color:var(--c-rose); }
+  .slide-title em.violet   { color:var(--c-violet-light); }
+  .slide-title em.teal     { color:var(--c-teal); }
+  .slide-title em.amber    { color:var(--c-amber); }
+
+  .body {
+    font-family:var(--font-display);
+    font-size:clamp(1rem,1.6vw,1.25rem);
+    line-height:1.7; color:var(--c-muted);
+    max-width:52ch;
+    margin-bottom:clamp(0.8rem,2vh,1.5rem);
+  }
+
+  .accent-line {
+    font-family:var(--font-display); font-style:italic;
+    font-size:clamp(1.1rem,1.8vw,1.4rem);
+    line-height:1.55; color:var(--c-offwhite);
+    max-width:52ch; padding-left:1.5rem;
+    border-left:1px solid var(--c-sand);
+    margin-bottom:clamp(0.8rem,2vh,1.5rem);
+  }
+  .accent-line.rose   { border-left-color:var(--c-rose); }
+  .accent-line.violet { border-left-color:var(--c-violet-light); }
+  .accent-line.teal   { border-left-color:var(--c-teal); }
+  .accent-line.amber  { border-left-color:var(--c-amber); }
+
+  .quote {
+    font-family:var(--font-display); font-style:italic;
+    font-size:clamp(1.2rem,2vw,1.6rem);
+    line-height:1.5; color:var(--c-sand);
+    margin-bottom:.3rem;
+  }
+  .quote.rose   { color:var(--c-rose); }
+  .quote.violet { color:var(--c-violet-light); }
+  .quote.amber  { color:var(--c-amber); }
+
+  .quote-autor {
+    font-family:var(--font-mono);
+    font-size:clamp(9px,1vw,11px);
+    letter-spacing:.15em; text-transform:uppercase;
+    color:var(--c-muted);
+  }
+
+  .cap-grid {
+    display:grid; grid-template-columns:1fr;
+    gap:7px; max-width:70ch;
+    margin-bottom:clamp(0.8rem,2vh,1.5rem);
+  }
+  .cap-item {
+    font-size:clamp(0.95rem,1.4vw,1.1rem);
+    color:rgba(242,240,236,0.65);
+    line-height:1.4; padding:0.6rem 1.1rem;
+    border:0.5px solid var(--c-ghost); border-radius:2px;
+    white-space:nowrap;
+  }
+  .cap-item::before          { content:'— '; color:var(--c-sand); }
+  .cap-item.rose::before     { color:var(--c-rose); }
+  .cap-item.violet::before   { color:var(--c-violet-light); }
+  .cap-item.teal::before     { color:var(--c-teal); }
+  .cap-item.amber::before    { color:var(--c-amber); }
+
+  .pregunta {
+    font-family:var(--font-display);
+    font-size:clamp(1.1rem,1.8vw,1.4rem);
+    color:var(--c-white); line-height:1.55;
+    max-width:52ch; padding:1.1rem 1.4rem;
+    border:0.5px solid rgba(201,180,154,0.35);
+    border-radius:2px;
+    background:rgba(201,180,154,0.05);
+  }
+  .pregunta.rose   { border-color:rgba(212,83,126,0.35); background:rgba(212,83,126,0.05); }
+  .pregunta.violet { border-color:rgba(175,169,236,0.35); background:rgba(175,169,236,0.05); }
+
+  .slide-q { justify-content:center; align-items:center; text-align:center; }
+
+  .pregunta-grande {
+    font-family:var(--font-display); font-style:italic;
+    font-size:clamp(1.8rem,4vw,3.2rem);
+    color:var(--c-white); line-height:1.25;
+    max-width:24ch; letter-spacing:-0.01em;
+  }
+  .pregunta-grande em        { color:var(--c-sand); }
+  .pregunta-grande em.rose   { color:var(--c-rose); }
+  .pregunta-grande em.teal   { color:var(--c-teal); }
+  .pregunta-grande em.violet { color:var(--c-violet-light); }
+
+  .tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:clamp(0.8rem,2vh,1.5rem); }
+  .pill {
+    font-family:var(--font-mono); font-size:11px;
+    padding:4px 12px; border:0.5px solid var(--c-ghost);
+    border-radius:99px; color:var(--c-muted);
+  }
+
+  .two-cols {
+    display:grid; grid-template-columns:1fr 1fr;
+    gap:1rem; margin-bottom:clamp(0.8rem,2vh,1.5rem);
+    max-width:68ch;
+  }
+  .col-block {
+    padding:1rem 1.2rem;
+    border:0.5px solid var(--c-ghost); border-radius:2px;
+  }
+  .col-block .col-label {
+    font-family:var(--font-mono); font-size:10px;
+    letter-spacing:.15em; text-transform:uppercase;
+    color:var(--c-muted); margin-bottom:.6rem;
+  }
+  .col-block .col-rows { display:flex; flex-direction:column; gap:6px; }
+  .col-block .col-row {
+    font-size:clamp(0.88rem,1.2vw,1rem);
+    line-height:1.45; color:var(--c-offwhite);
+    padding-left:.8rem; border-left:1.5px solid var(--c-ghost);
+  }
+  .col-block.a .col-row { border-left-color:var(--c-violet-light); }
+  .col-block.b .col-row { border-left-color:var(--c-sand); }
+
+  .ejercicio-box {
+    max-width:60ch;
+    border:0.5px solid rgba(201,180,154,0.3);
+    border-radius:2px; background:rgba(201,180,154,0.04);
+    padding:1.4rem 1.6rem;
+    margin-bottom:clamp(0.8rem,2vh,1.5rem);
+  }
+  .ejercicio-header {
+    font-family:var(--font-mono); font-size:9px;
+    letter-spacing:.2em; text-transform:uppercase;
+    color:var(--c-sand); margin-bottom:1rem; opacity:.8;
+  }
+  .ejercicio-pregunta {
+    font-family:var(--font-display); font-style:italic;
+    font-size:clamp(1rem,1.6vw,1.25rem);
+    color:var(--c-offwhite); line-height:1.6;
+    margin-bottom:.7rem;
+  }
+  .ejercicio-pregunta:last-child { margin-bottom:0; }
+  .ejercicio-linea {
+    width:100%; border:none;
+    border-bottom:0.5px solid rgba(242,240,236,0.1);
+    margin:.5rem 0 1rem;
+  }
+
+  .capas {
+    display:grid; grid-template-columns:1fr;
+    gap:8px; max-width:58ch;
+    margin-bottom:clamp(0.8rem,2vh,1.5rem);
+  }
+  .capa-row {
+    display:flex; align-items:baseline; gap:1rem;
+    padding:.7rem 1rem;
+    border:0.5px solid var(--c-ghost); border-radius:2px;
+  }
+  .capa-num {
+    font-family:var(--font-mono); font-size:9px;
+    letter-spacing:.15em; color:var(--c-muted); min-width:2ch;
+  }
+  .capa-label {
+    font-family:var(--font-mono); font-size:10px;
+    letter-spacing:.12em; text-transform:uppercase;
+    min-width:10ch; color:var(--c-sand);
+  }
+  .capa-desc {
+    font-size:clamp(.88rem,1.2vw,1rem);
+    color:var(--c-muted); line-height:1.45;
+  }
+
+  .condiciones {
+    display:grid; grid-template-columns:1fr;
+    gap:8px; max-width:64ch;
+    margin-bottom:clamp(0.8rem,2vh,1.5rem);
+  }
+  .cond-item {
+    padding:.8rem 1.1rem;
+    border:0.5px solid var(--c-ghost); border-radius:2px;
+    border-left:2px solid var(--c-sand);
+  }
+  .cond-title {
+    font-family:var(--font-mono); font-size:9px;
+    letter-spacing:.15em; text-transform:uppercase;
+    color:var(--c-sand); margin-bottom:.35rem;
+  }
+  .cond-body {
+    font-size:clamp(.9rem,1.3vw,1.05rem);
+    color:rgba(242,240,236,.65); line-height:1.5;
+  }
+
+  .pregunta-stack { display:flex; flex-direction:column; gap:10px; max-width:60ch; }
+  .pregunta-item {
+    font-family:var(--font-display); font-style:italic;
+    font-size:clamp(1.05rem,1.7vw,1.3rem);
+    color:var(--c-white); line-height:1.5;
+    padding:.85rem 1.2rem;
+    border:0.5px solid rgba(201,180,154,.25);
+    border-radius:2px; background:rgba(201,180,154,.04);
+  }
+  .pregunta-item .num {
+    font-family:var(--font-mono); font-size:9px;
+    letter-spacing:.15em; color:var(--c-sand);
+    display:block; margin-bottom:.3rem; opacity:.7;
+  }
+
+  #s0 { justify-content:center; align-items:flex-start; }
+  #s0 .class-label {
+    font-family:var(--font-mono); font-size:clamp(9px,1vw,11px);
+    letter-spacing:.2em; text-transform:uppercase;
+    color:var(--c-muted); margin-bottom:1rem;
+  }
+  #s0 .class-subtitle {
+    font-family:var(--font-display); font-style:italic;
+    font-size:clamp(1rem,1.6vw,1.3rem);
+    color:var(--c-muted); margin-top:1.2rem;
+    max-width:44ch; line-height:1.55;
+  }
+
+  .section-rule {
+    width:40px; height:.5px;
+    background:var(--c-ghost);
+    margin-bottom:clamp(1rem,2vh,1.8rem);
+  }
+
+  #nav {
+    position:fixed; bottom:0; left:0; right:0; z-index:100;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:1.2rem 4vw;
+    border-top:0.5px solid var(--c-ghost);
+  }
+  .nav-dots { display:flex; gap:10px; align-items:center; }
+  .dot {
+    width:5px; height:5px; border-radius:50%;
+    background:var(--c-ghost); border:none; cursor:none;
+    transition:background .3s, transform .3s; padding:0;
+  }
+  .dot.on { background:var(--c-sand); transform:scale(1.6); }
+  #counter { font-family:var(--font-mono); font-size:11px; letter-spacing:.12em; color:var(--c-muted); }
+  .arrow-btns { display:flex; gap:8px; }
+  .arr {
+    width:36px; height:36px;
+    border:0.5px solid var(--c-ghost); background:transparent;
+    color:var(--c-white); font-size:15px; cursor:none; border-radius:2px;
+    display:flex; align-items:center; justify-content:center;
+    transition:border-color .2s, background .2s;
+  }
+  .arr:hover { border-color:var(--c-sand); background:rgba(201,180,154,.08); }
+  #hint {
+    position:fixed; bottom:5.5rem; right:4vw;
+    font-family:var(--font-mono); font-size:10px;
+    letter-spacing:.15em; text-transform:uppercase;
+    color:var(--c-muted); opacity:1; transition:opacity 1.5s;
+    pointer-events:none; z-index:200;
+  }
+  #hint.gone { opacity:0; }
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<canvas id="canvas-bg"></canvas>
+
+<div id="deck">
+
+  <!-- ══ S0 — COPERTINA ══ -->
+  <div class="slide active" id="s0">
+    <div class="inner">
+      <div class="class-label">Classe 4 · Intelligenza Vincolare</div>
+      <div class="display-title">Parità non è<br><em>uguaglianza</em></div>
+      <div class="section-rule"></div>
+      <div class="class-subtitle">Incontro con l'altrx.<br>La differenza come materia prima del legame.</div>
+    </div>
+  </div>
+
+  <!-- ══ S1 — PONTE da Classe 3 ══ -->
+  <div class="slide slide-q" id="s1">
+    <div class="inner" style="display:flex;flex-direction:column;align-items:center">
+      <div class="tag" style="text-align:center;margin-bottom:clamp(2rem,5vh,4rem)">Riprendendo · Classe 3</div>
+      <div class="pregunta-grande">Chi sei<br>quando il legame<br>ti <em>trasforma</em>?</div>
+    </div>
+  </div>
+
+  <!-- ══ S2 — EGO COME SCHEMA ══ -->
+  <div class="slide" id="s2">
+    <div class="inner">
+      <div class="tag">01 · Classe 4 — Ponte</div>
+      <div class="slide-title">L'ego come<br><em>schema di percezione</em></div>
+      <div class="body">L'ego non è arroganza. È il filtro che organizza ciò che percepiamo: cosa registro, cosa ignoro, cosa mi tocca. Una costruzione accumulata di legami precedenti e risposte che una volta hanno funzionato.</div>
+      <div class="accent-line">Il problema non è avere uno schema — è inevitabile. Il problema è credere che lo schema sia la realtà.</div>
+      <div class="tags">
+        <span class="pill">storia vincolare</span>
+        <span class="pill">risposte apprese</span>
+        <span class="pill">lente invisibile</span>
+        <span class="pill">disidentificazione</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S3 — L'ALTRO REALE ══ -->
+  <div class="slide" id="s3">
+    <div class="inner">
+      <div class="tag">02 · Classe 4</div>
+      <div class="slide-title">L'apparizione dell'<br><em>altro reale</em> e distinto</div>
+      <div class="body">Due risposte possibili quando l'altro non si adatta allo schema: forzarlo dentro lo schema — oppure tollerare che non si adatti e lasciare che quella frizione sia informazione.</div>
+      <div class="two-cols">
+        <div class="col-block a">
+          <div class="col-label">L'abituale</div>
+          <div class="col-rows">
+            <div class="col-row">Deformare l'altro finché non si adatta</div>
+            <div class="col-row">Interpretare dalla propria storia</div>
+            <div class="col-row">Confermare ciò che già so</div>
+          </div>
+        </div>
+        <div class="col-block b">
+          <div class="col-label">L'incontro reale</div>
+          <div class="col-rows">
+            <div class="col-row">Tollerare che l'altro non si adatti</div>
+            <div class="col-row">Leggere la frizione come dato</div>
+            <div class="col-row">Lasciare che l'altro sorprenda</div>
+          </div>
+        </div>
+      </div>
+      <div class="accent-line">L'altro reale e distinto non conferma la nostra lettura. E quella perturbazione è il legame.</div>
+    </div>
+  </div>
+
+  <!-- ══ S4 — RITMI VINCOLARI ══ -->
+  <div class="slide" id="s4">
+    <div class="inner">
+      <div class="tag">03 · Classe 4</div>
+      <div class="slide-title">Differenza emotiva<br>e <em class="teal">ritmi vincolari</em></div>
+      <div class="body">Non esistono due persone con gli stessi ritmi: di elaborazione emotiva, di chiusura dei conflitti, di apertura, di bisogno di contatto. E tendiamo a leggere la differenza di ritmo come intenzione.</div>
+      <div class="accent-line teal">Quando il ritmo dell'altro non coincide col nostro, l'ego lo legge come abbandono, richiesta o indifferenza.</div>
+      <div class="pregunta violet">Se oggi non parli, non è che non ti importa. Il tuo ritmo di elaborazione è diverso dal mio. Riesco a sostenere quella differenza senza farne un problema?</div>
+    </div>
+  </div>
+
+  <!-- ══ S5 — FALSE SIMMETRIE ══ -->
+  <div class="slide" id="s5">
+    <div class="inner">
+      <div class="tag">04 · Classe 4</div>
+      <div class="slide-title"><em class="rose">False</em> simmetrie</div>
+      <div class="body">Le false simmetrie sono gli accordi taciti che siamo uguali nel legame — stessa capacità di sostenere, stessa tolleranza, stessa storia, stesse risorse emotive.</div>
+      <div class="cap-grid">
+        <div class="cap-item rose">Non è mai vero</div>
+        <div class="cap-item rose">Parità non è uguaglianza di capacità</div>
+        <div class="cap-item rose">Può non esserci gerarchia formale e ci può essere asimmetria profonda</div>
+        <div class="cap-item rose">Esigere dall'altro ciò che posso fare io non è giusto — è simmetrico</div>
+      </div>
+      <div class="accent-line rose">Confondere parità con uguaglianza genera risentimento invisibile.</div>
+    </div>
+  </div>
+
+  <!-- ══ S6 — CONFLITTO: PAUSA ══ -->
+  <div class="slide slide-q" id="s6">
+    <div class="inner" style="display:flex;flex-direction:column;align-items:center">
+      <div class="tag" style="text-align:center;margin-bottom:clamp(2rem,5vh,4rem)">Pausa · Installazione</div>
+      <div class="pregunta-grande">Il conflitto non è<br>un difetto del legame.<br>È il segnale che<br>ci sono <em>due persone reali</em><br>in contatto.</div>
+    </div>
+  </div>
+
+  <!-- ══ S7 — IL CONFLITTO COME INFORMAZIONE ══ -->
+  <div class="slide" id="s7">
+    <div class="inner">
+      <div class="tag">05 · Classe 4 — Nucleo della classe</div>
+      <div class="slide-title">Il conflitto come<br><em>informazione</em></div>
+      <div class="body">Il problema non è il conflitto. È quello che ci facciamo. Tre movimenti che non leggono il conflitto — che lo sprecano:</div>
+      <div class="cap-grid">
+        <div class="cap-item amber">Risolverlo in fretta — per abbassare il disagio, senza leggere cosa porta</div>
+        <div class="cap-item amber">Aver ragione — usarlo per confermare il proprio schema</div>
+        <div class="cap-item amber">Evitarlo — sostenere un'armonia superficiale che lascia tutto non elaborato</div>
+      </div>
+      <div class="quote amber">"Il conflitto è il modo in cui il legame chiede di essere visto."</div>
+    </div>
+  </div>
+
+  <!-- ══ S8 — I TRE STRATI ══ -->
+  <div class="slide" id="s8">
+    <div class="inner">
+      <div class="tag">05b · Classe 4 — Gli strati del conflitto</div>
+      <div class="slide-title">Ogni conflitto<br>ha <em class="amber">tre strati</em></div>
+      <div class="capas">
+        <div class="capa-row">
+          <span class="capa-num">01</span>
+          <span class="capa-label">Il detto</span>
+          <span class="capa-desc">Il contenuto manifesto. Ciò che viene nominato.</span>
+        </div>
+        <div class="capa-row">
+          <span class="capa-num">02</span>
+          <span class="capa-label">Il sentito</span>
+          <span class="capa-desc">Il carico emotivo. Viene da un'altra parte, da un'altra storia.</span>
+        </div>
+        <div class="capa-row">
+          <span class="capa-num">03</span>
+          <span class="capa-label">Il necessario</span>
+          <span class="capa-desc">Quasi mai è ciò che si chiede. Raramente viene detto.</span>
+        </div>
+      </div>
+      <div class="accent-line amber">Quando si distinguono questi tre strati, il conflitto smette di essere una battaglia e diventa una mappa.</div>
+    </div>
+  </div>
+
+  <!-- ══ S9 — SOSTENERE LA DIFFERENZA ══ -->
+  <div class="slide" id="s9">
+    <div class="inner">
+      <div class="tag">06 · Classe 4 — Sviluppo principale</div>
+      <div class="slide-title">Sostenere la differenza<br>senza <em>gerarchia</em></div>
+      <div class="body">C'è una tendenza quasi automatica: quando appare la differenza, dobbiamo risolverla. Convincere, essere convinti, trovare il punto di mezzo. Tutte queste mosse eliminano la differenza.</div>
+      <div class="accent-line">Sostenere la differenza senza gerarchia significa permettere che due verità coesistano senza che nessuna cancelli l'altra.</div>
+    </div>
+  </div>
+
+  <!-- ══ S10 — TRE CONDIZIONI ══ -->
+  <div class="slide" id="s10">
+    <div class="inner">
+      <div class="tag">06b · Classe 4</div>
+      <div class="slide-title">Tre <em>condizioni</em><br>per sostenerla</div>
+      <div class="condiciones">
+        <div class="cond-item">
+          <div class="cond-title">01 · Distinguere posizione da valore</div>
+          <div class="cond-body">Che l'altro veda diversamente non lo rende meno capace né meno prezioso. La differenza è di prospettiva, non di gerarchia.</div>
+        </div>
+        <div class="cond-item">
+          <div class="cond-title">02 · Tollerare il non convergere</div>
+          <div class="cond-body">Non ogni legame deve arrivare a un accordo. Nominare la differenza e restare in contatto con essa, senza risolverla, è una forma di rispetto.</div>
+        </div>
+        <div class="cond-item">
+          <div class="cond-title">03 · Restare in contatto mentre la differenza è presente</div>
+          <div class="cond-body">Non fondersi, non allontanarsi. Restare nel campo condiviso dove la differenza può vivere.</div>
+        </div>
+      </div>
+      <div class="quote">"La maturità vincolare non è trovare qualcuno con cui non ci sia conflitto. È imparare a stare con qualcuno la cui differenza non hai bisogno di eliminare."</div>
+    </div>
+  </div>
+
+  <!-- ══ S11 — ESERCIZIO ══ -->
+  <div class="slide" id="s11">
+    <div class="inner">
+      <div class="tag">07 · Classe 4 — Esercizio</div>
+      <div class="slide-title">Cosa succederebbe<br>se non avessi bisogno che <em>scomparisse</em>?</div>
+      <div class="ejercicio-box">
+        <div class="ejercicio-header">Esercizio · Individuale + In coppia · 20 minuti</div>
+        <div class="ejercicio-pregunta">Pensa a un legame in cui c'è una differenza che fai fatica a sostenere. Qual è quella differenza concreta? Cosa ci fa l'ego?</div>
+        <hr class="ejercicio-linea">
+        <div class="ejercicio-pregunta">Cosa succederebbe in quel legame se smettessi di aver bisogno che quella differenza scompaia?</div>
+        <hr class="ejercicio-linea">
+        <div class="ejercicio-pregunta">Di cosa hai bisogno tu per poterla sostenere?</div>
+      </div>
+      <div class="body" style="margin-bottom:0">Prima scrivere in silenzio. Poi esplorare ad alta voce con un'altra persona. Chi ascolta non interviene.</div>
+    </div>
+  </div>
+
+  <!-- ══ S12 — CHIUSURA ══ -->
+  <div class="slide" id="s12">
+    <div class="inner">
+      <div class="tag">08 · Classe 4 — Chiusura</div>
+      <div class="slide-title">Le domande<br>che aprono l'<em>incontro</em></div>
+      <div class="pregunta-stack">
+        <div class="pregunta-item">
+          <span class="num">01</span>
+          Con chi nella tua vita non sei ancora riuscito/a a incontrarti davvero — perché la differenza ti è ancora difficile da sostenere?
+        </div>
+        <div class="pregunta-item">
+          <span class="num">02</span>
+          Cosa saresti disposto/a a non capire del tutto, perché l'altro possa continuare a essere reale?
+        </div>
+        <div class="pregunta-item">
+          <span class="num">03</span>
+          Cosa perdi se il conflitto non ha un colpevole?
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S13 — DOMANDA FINALE ══ -->
+  <div class="slide slide-q" id="s13">
+    <div class="inner" style="display:flex;flex-direction:column;align-items:center">
+      <div class="tag" style="text-align:center;margin-bottom:clamp(2rem,5vh,4rem)">Domanda di chiusura</div>
+      <div class="pregunta-grande">Cosa perdi<br>se il conflitto<br>non ha<br>un <em class="rose">colpevole</em>?</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Nav -->
+<div id="nav">
+  <div class="nav-dots" id="navDots"></div>
+  <span id="counter">1 / 14</span>
+  <div class="arrow-btns">
+    <button class="arr" id="prev">&#8592;</button>
+    <button class="arr" id="next">&#8594;</button>
+  </div>
+</div>
+
+<div id="hint">Frecce ← →</div>
+
+<script>
+const curEl = document.getElementById('cursor');
+document.addEventListener('mousemove', e => {
+  curEl.style.left = e.clientX + 'px';
+  curEl.style.top  = e.clientY + 'px';
+});
+
+const canvas = document.getElementById('canvas-bg');
+const ctx    = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+class Vein {
+  constructor(opts = {}) {
+    this.x        = opts.x ?? Math.random() * W;
+    this.y        = opts.y ?? Math.random() * H;
+    this.angle    = opts.angle ?? Math.random() * Math.PI * 2;
+    this.speed    = 0.3 + Math.random() * 0.5;
+    this.noiseOff = Math.random() * 1000;
+    this.points   = [{x: this.x, y: this.y}];
+    const r = Math.random();
+    this.hue = r < 0.5 ? 'sand' : r < 0.75 ? 'rose' : 'violet';
+    this.alpha    = 0.04 + Math.random() * 0.08;
+    this.width    = 0.3 + Math.random() * 0.7;
+    this.jitter   = 0.4 + Math.random() * 1.0;
+    this.turnRate = (Math.random() - 0.5) * 0.07;
+    this.segments = 0;
+    this.maxSegments = 80 + Math.floor(Math.random() * 130);
+  }
+
+  step(t) {
+    if (this.segments >= this.maxSegments) return;
+    const noise =
+      Math.sin(t * 0.0007 + this.noiseOff) * 0.04 +
+      Math.sin(t * 0.003  + this.noiseOff * 1.3) * 0.022 +
+      Math.sin(t * 0.011  + this.noiseOff * 0.7) * 0.014;
+    this.angle += this.turnRate + noise + (Math.random() - 0.5) * 0.03 * this.jitter;
+    this.x += Math.cos(this.angle) * this.speed;
+    this.y += Math.sin(this.angle) * this.speed;
+    this.points.push({x: this.x, y: this.y});
+    this.segments++;
+  }
+
+  draw() {
+    if (this.points.length < 2) return;
+    const cols = { sand: '#C9B49A', rose: '#D4537E', violet: '#7F77DD' };
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.strokeStyle = cols[this.hue];
+    ctx.lineWidth   = this.width;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(this.points[0].x, this.points[0].y);
+    for (let i = 1; i < this.points.length; i++) {
+      ctx.lineTo(
+        this.points[i].x + (Math.random() - 0.5) * 0.4,
+        this.points[i].y + (Math.random() - 0.5) * 0.4
+      );
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  done() {
+    const p = this.points[this.points.length - 1];
+    return this.segments >= this.maxSegments ||
+      p.x < -60 || p.x > W + 60 || p.y < -60 || p.y > H + 60;
+  }
+}
+
+class DualBody {
+  constructor() {
+    this.cx = Math.random() * W;
+    this.cy = Math.random() * H;
+    this.angle = Math.random() * Math.PI * 2;
+    this.orbitR = 30 + Math.random() * 60;
+    this.speed  = (0.0004 + Math.random() * 0.0005) * (Math.random() < 0.5 ? 1 : -1);
+    this.vx = (Math.random() - 0.5) * 0.2;
+    this.vy = (Math.random() - 0.5) * 0.15;
+    this.r  = 2 + Math.random() * 3;
+    this.alpha = 0.06 + Math.random() * 0.1;
+    this.colA = Math.random() < 0.5 ? '#C9B49A' : '#AFA9EC';
+    this.colB = Math.random() < 0.5 ? '#D4537E' : '#C9B49A';
+  }
+
+  step() {
+    this.angle += this.speed;
+    this.cx += this.vx; this.cy += this.vy;
+    if (this.cx < 0 || this.cx > W) this.vx *= -1;
+    if (this.cy < 0 || this.cy > H) this.vy *= -1;
+  }
+
+  draw() {
+    const ax = this.cx + Math.cos(this.angle) * this.orbitR;
+    const ay = this.cy + Math.sin(this.angle) * this.orbitR;
+    const bx = this.cx - Math.cos(this.angle) * this.orbitR;
+    const by = this.cy - Math.sin(this.angle) * this.orbitR;
+    ctx.save();
+    ctx.globalAlpha = this.alpha * 0.4;
+    ctx.strokeStyle = '#C9B49A';
+    ctx.lineWidth   = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
+    ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.fillStyle   = this.colA;
+    ctx.beginPath();
+    ctx.arc(ax, ay, this.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha = this.alpha * 0.8;
+    ctx.fillStyle   = this.colB;
+    ctx.beginPath();
+    ctx.arc(bx, by, this.r * 0.85, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+const veins    = [];
+const duals    = Array.from({length: 12}, () => new DualBody());
+const MAX_VEINS = 11;
+for (let i = 0; i < MAX_VEINS; i++) veins.push(new Vein());
+
+const sparks = Array.from({length: 25}, () => {
+  const s = makeSpark();
+  s.life = Math.floor(Math.random() * s.maxLife);
+  return s;
+});
+
+function makeSpark() {
+  return {
+    x: Math.random() * W, y: Math.random() * H,
+    r: 0.5 + Math.random() * 1.2,
+    alpha: 0, targetAlpha: 0.07 + Math.random() * 0.16,
+    life: 0, maxLife: 120 + Math.random() * 180,
+    col: ['#C9B49A', '#AFA9EC', '#D4537E'][Math.floor(Math.random() * 3)],
+  };
+}
+
+let mouseX = W / 2, mouseY = H / 2;
+let frameCount = 0;
+document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+
+function animate(t) {
+  requestAnimationFrame(animate);
+  frameCount++;
+  ctx.fillStyle = 'rgba(8,8,16,0.022)';
+  ctx.fillRect(0, 0, W, H);
+  duals.forEach(d => { d.step(); d.draw(); });
+  for (let i = veins.length - 1; i >= 0; i--) {
+    veins[i].step(t); veins[i].draw();
+    if (veins[i].done()) veins.splice(i, 1);
+  }
+  if (frameCount % 26 === 0 && veins.length < MAX_VEINS) {
+    const near = Math.random() < 0.3;
+    veins.push(new Vein({
+      x: near ? mouseX + (Math.random() - 0.5) * 60 : Math.random() * W,
+      y: near ? mouseY + (Math.random() - 0.5) * 60 : Math.random() * H,
+    }));
+  }
+  sparks.forEach((s, i) => {
+    s.life++;
+    const p = s.life / s.maxLife;
+    s.alpha = p < 0.2  ? (p / 0.2) * s.targetAlpha
+            : p > 0.7  ? ((1 - p) / 0.3) * s.targetAlpha
+            : s.targetAlpha;
+    ctx.save(); ctx.globalAlpha = s.alpha;
+    ctx.fillStyle = s.col;
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    if (s.life >= s.maxLife) Object.assign(sparks[i], makeSpark());
+  });
+  if (frameCount % 3 === 0) {
+    const pulse = (Math.sin(t * 0.001) + 1) * 0.5;
+    ctx.save();
+    ctx.globalAlpha = 0.012 * pulse;
+    ctx.strokeStyle = '#C9B49A';
+    ctx.lineWidth   = 0.5;
+    ctx.beginPath();
+    ctx.arc(mouseX, mouseY, 40 + pulse * 20, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+animate(0);
+
+const slides  = Array.from(document.querySelectorAll('.slide'));
+const total   = slides.length;
+let current   = 0;
+const dotsEl    = document.getElementById('navDots');
+const counterEl = document.getElementById('counter');
+
+const dots = slides.map((_, i) => {
+  const d = document.createElement('button');
+  d.className = 'dot' + (i === 0 ? ' on' : '');
+  d.setAttribute('aria-label', 'Slide ' + (i + 1));
+  d.addEventListener('click', () => goTo(i));
+  dotsEl.appendChild(d);
+  return d;
+});
+
+function goTo(n) {
+  slides[current].classList.remove('active');
+  dots[current].classList.remove('on');
+  current = (n + total) % total;
+  slides[current].classList.add('active');
+  dots[current].classList.add('on');
+  counterEl.textContent = (current + 1) + ' / ' + total;
+  for (let i = 0; i < 3; i++) veins.push(new Vein({
+    x: Math.random() * W, y: Math.random() * H,
+    angle: Math.random() * Math.PI * 2,
+  }));
+}
+
+document.getElementById('prev').addEventListener('click', () => goTo(current - 1));
+document.getElementById('next').addEventListener('click', () => goTo(current + 1));
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goTo(current + 1);
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   goTo(current - 1);
+});
+
+setTimeout(() => document.getElementById('hint').classList.add('gone'), 4000);
+</script>
+</body>
+</html>
